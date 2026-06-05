@@ -250,6 +250,6 @@ class WebhookApplicationServiceImplTest {
     }
 
     private Sector sector(String code, LocalTime openHour, LocalTime closeHour) {
-        return new Sector(SectorCode.of(code), Money.of("10.00"), 10, openHour, closeHour, 1440);
+        return Sector.register(SectorCode.of(code), Money.of("10.00"), 10, openHour, closeHour, 1440);
     }
 }

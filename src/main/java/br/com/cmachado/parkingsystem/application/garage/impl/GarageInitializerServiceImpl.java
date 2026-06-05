@@ -65,7 +65,7 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
         Integer durationLimitMinutes = data.getDurationLimitMinutes() != null ? data.getDurationLimitMinutes() : 1440;
 
         Sector sector = sectorRepository.findByCode(code)
-                .orElseGet(() -> new Sector(code, basePrice, data.getMaxCapacity(),
+                .orElseGet(() -> Sector.register(code, basePrice, data.getMaxCapacity(),
                         openHour, closeHour, durationLimitMinutes));
         sector.update(basePrice, data.getMaxCapacity(), openHour, closeHour, durationLimitMinutes);
         sectorRepository.save(sector);
@@ -81,10 +81,14 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
 
     private void upsertSpot(SpotData data) {
         SectorCode code = SectorCode.of(data.getSector());
+
         GeoLocation location = GeoLocation.of(data.getLat(), data.getLng());
+
         ParkingSpot spot = spotRepository.findByExternalId(data.getId())
                 .orElseGet(() -> ParkingSpot.register(data.getId(), code, location));
+
         spot.updateLocation(code, location);
+
         spotRepository.save(spot);
     }
 

@@ -80,7 +80,7 @@ class GarageInitializerServiceImplTest {
 
     @Test
     void updatesExistingSectorWithLatestSimulatorData() {
-        Sector existing = new Sector(SectorCode.of("A"), Money.of("8.00"), 50,
+        Sector existing = Sector.register(SectorCode.of("A"), Money.of("8.00"), 50,
                 LocalTime.of(7, 0), LocalTime.of(18, 0), 120);
         GarageResponse config = config(List.of(sector("A", 12.5, 80, "09:00", "21:30", 300)), null);
         when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.of(existing));

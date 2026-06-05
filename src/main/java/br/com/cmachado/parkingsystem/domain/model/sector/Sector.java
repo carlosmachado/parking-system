@@ -65,13 +65,8 @@ public class Sector extends AggregateRootBase<Sector> {
     @Column(name = "duration_limit_minutes", nullable = false)
     private Integer durationLimitMinutes;
 
-    public Sector(SectorCode code, Money basePrice, Integer maxCapacity,
-                  LocalTime openHour, LocalTime closeHour, Integer durationLimitMinutes) {
-        Objects.requireNonNull(code, "SectorCode cannot be null");
-        Objects.requireNonNull(basePrice, "BasePrice cannot be null");
-        Objects.requireNonNull(maxCapacity, "MaxCapacity cannot be null");
-        if (maxCapacity < 1) throw new IllegalArgumentException("MaxCapacity must be at least 1");
-
+    private Sector(SectorCode code, Money basePrice, Integer maxCapacity,
+                   LocalTime openHour, LocalTime closeHour, Integer durationLimitMinutes) {
         this.id = SectorId.generate();
         this.code = code;
         this.basePrice = basePrice;
@@ -80,6 +75,15 @@ public class Sector extends AggregateRootBase<Sector> {
         this.closeHour = closeHour != null ? closeHour : LocalTime.of(23, 59);
         this.durationLimitMinutes = durationLimitMinutes != null ? durationLimitMinutes : 1440;
         registerEvent(new SectorCreated(this));
+    }
+
+    public static Sector register(SectorCode code, Money basePrice, Integer maxCapacity,
+                                  LocalTime openHour, LocalTime closeHour, Integer durationLimitMinutes) {
+        Objects.requireNonNull(code, "SectorCode cannot be null");
+        Objects.requireNonNull(basePrice, "BasePrice cannot be null");
+        Objects.requireNonNull(maxCapacity, "MaxCapacity cannot be null");
+        if (maxCapacity < 1) throw new IllegalArgumentException("MaxCapacity must be at least 1");
+        return new Sector(code, basePrice, maxCapacity, openHour, closeHour, durationLimitMinutes);
     }
 
     /** Updates mutable fields to match the latest data from the simulator. */
