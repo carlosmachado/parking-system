@@ -2,14 +2,14 @@ package br.com.cmachado.parkingsystem.domain.model.revenue;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.garage.SectorCode;
+import br.com.cmachado.parkingsystem.domain.model.revenue.events.DailyRevenueCreated;
+import br.com.cmachado.parkingsystem.domain.model.revenue.events.DailyRevenueUpdated;
 import br.com.cmachado.parkingsystem.domain.shared.AggregateRootBase;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -32,9 +32,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class DailyRevenue extends AggregateRootBase<DailyRevenue> {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @EmbeddedId
+    private DailyRevenueId id;
 
     @Embedded
     @AttributeOverride(name = "code", column = @Column(name = "sector_code", nullable = false))
@@ -67,24 +66,25 @@ public class DailyRevenue extends AggregateRootBase<DailyRevenue> {
     public DailyRevenue(SectorCode sectorCode, LocalDate date) {
         if (sectorCode == null) throw new IllegalArgumentException("SectorCode cannot be null");
         if (date == null) throw new IllegalArgumentException("Date cannot be null");
-        
+
+        this.id = DailyRevenueId.generate();
         this.sectorCode = sectorCode;
         this.date = date;
         this.totalAmount = Money.ZERO;
+        registerEvent(new DailyRevenueCreated(this));
     }
 
-    /**
-     * Adds the given amount to the running daily total. Null amounts are ignored.
-     */
+    /** Adds the given amount to the running daily total. Null amounts are ignored. */
     public void addRevenue(Money amount) {
         if (amount != null) {
             this.totalAmount = this.totalAmount.add(amount);
+            registerEvent(new DailyRevenueUpdated(this));
         }
     }
 
     @Override
     public boolean sameIdentityAs(DailyRevenue other) {
-        return other != null && this.id != null && this.id.equals(other.id);
+        return other != null && this.id != null && this.id.sameValueAs(other.id);
     }
 
     @Override

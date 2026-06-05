@@ -1,31 +1,30 @@
 package br.com.cmachado.parkingsystem.domain.model.garage;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.shared.Entity;
+import br.com.cmachado.parkingsystem.domain.model.garage.events.SectorCreated;
+import br.com.cmachado.parkingsystem.domain.shared.AggregateRootBase;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
- * A logical division of the garage's spot pool, with its own base price and capacity.
- * Sectors are organizational, not physical: all share the single entrance gate group.
+ * Aggregate root representing a logical division of the garage's spot pool, with its own
+ * base price and capacity. Sectors are organizational, not physical: all share the single
+ * entrance gate group.
  */
 @jakarta.persistence.Entity
 @Table(name = "sector")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Sector implements Entity<Sector> {
+public class Sector extends AggregateRootBase<Sector> {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @EmbeddedId
+    private SectorId id;
 
     @Embedded
     private SectorCode code;
@@ -41,15 +40,17 @@ public class Sector implements Entity<Sector> {
         if (code == null) throw new IllegalArgumentException("SectorCode cannot be null");
         if (basePrice == null) throw new IllegalArgumentException("BasePrice cannot be null");
         if (maxCapacity == null || maxCapacity < 1) throw new IllegalArgumentException("MaxCapacity must be at least 1");
-        
+
+        this.id = SectorId.generate();
         this.code = code;
         this.basePrice = basePrice;
         this.maxCapacity = maxCapacity;
+        registerEvent(new SectorCreated(this));
     }
 
     @Override
     public boolean sameIdentityAs(Sector other) {
-        return other != null && this.id != null && this.id.equals(other.id);
+        return other != null && this.id != null && this.id.sameValueAs(other.id);
     }
 
     @Override

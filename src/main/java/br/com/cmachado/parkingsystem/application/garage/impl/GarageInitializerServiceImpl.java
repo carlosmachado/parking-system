@@ -64,7 +64,7 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
                 SectorCode code = new SectorCode(spotData.getSector());
                 GeoLocation location = new GeoLocation(spotData.getLat(), spotData.getLng());
 
-                spotRepository.findById(spotData.getId())
+                spotRepository.findByExternalId(spotData.getId())
                         .orElseGet(() -> {
                             Spot spot = new Spot(spotData.getId(), code, location);
                             return spotRepository.save(spot);

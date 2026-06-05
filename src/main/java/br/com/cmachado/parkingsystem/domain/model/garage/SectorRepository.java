@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface SectorRepository extends JpaRepository<Sector, Long> {
+public interface SectorRepository extends JpaRepository<Sector, SectorId> {
     Optional<Sector> findByCode(SectorCode code);
 }

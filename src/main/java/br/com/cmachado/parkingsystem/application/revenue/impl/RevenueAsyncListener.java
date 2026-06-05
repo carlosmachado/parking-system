@@ -2,7 +2,7 @@ package br.com.cmachado.parkingsystem.application.revenue.impl;
 
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenue;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenueRepository;
-import br.com.cmachado.parkingsystem.domain.model.vehicle.VehicleExitedDomainEvent;
+import br.com.cmachado.parkingsystem.domain.model.vehicle.events.VehicleExited;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -31,7 +31,7 @@ public class RevenueAsyncListener {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handleVehicleExited(VehicleExitedDomainEvent event) {
+    public void handleVehicleExited(VehicleExited event) {
         if (event.getAmountCharged() == null || event.getAmountCharged().getAmount().signum() == 0) {
             return; // No revenue to add
         }
