@@ -34,27 +34,26 @@ presentation/   controllers REST
 
 ## Como executar
 
-1. Suba o banco de dados:
+Suba o banco de dados, o simulador e a aplicação de uma vez:
 
-   ```bash
-   docker-compose up -d
-   ```
+```bash
+docker compose up -d
+```
 
-2. Inicie o simulador de garagem:
+O `docker compose` aguarda o MySQL estar saudável antes de iniciar a aplicação. Ao iniciar,
+a aplicação busca a configuração da garagem em `GET /garage`, persiste setores e vagas e
+registra o webhook. Se o simulador ainda não estiver disponível, a busca é refeita
+automaticamente por algumas tentativas.
 
-   ```bash
-   docker run -d --network="host" cfontes0estapar/garage-sim:1.0.0
-   ```
+Para acompanhar os logs:
 
-3. Rode a aplicação (porta `3003`):
+```bash
+docker compose logs -f app
+docker compose logs -f garage-sim
+```
 
-   ```bash
-   ./mvnw spring-boot:run
-   ```
-
-   Ao iniciar, a aplicação busca a configuração da garagem em `GET /garage`, persiste setores
-   e vagas e registra o webhook. Se o simulador ainda não estiver disponível, a busca é
-   refeita automaticamente por algumas tentativas.
+> **DataGrip / MySQL Workbench:** o banco fica disponível em `localhost:3307`
+> (usuário `root`, senha `root`).
 
 ## Endpoints
 
