@@ -6,17 +6,22 @@ import br.com.cmachado.parkingsystem.domain.model.garage.Sector;
 import br.com.cmachado.parkingsystem.domain.model.garage.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.garage.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
-import br.com.cmachado.parkingsystem.domain.model.spot.Spot;
-import br.com.cmachado.parkingsystem.domain.model.spot.SpotRepository;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.infrastructure.client.GarageResponse;
+import br.com.cmachado.parkingsystem.infrastructure.client.GarageResponse.SectorData;
+import br.com.cmachado.parkingsystem.infrastructure.client.GarageResponse.SpotData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
+import java.util.List;
+
 /**
- * Persists the garage layout fetched from the simulator. Sectors and spots are created
- * idempotently, so re-running initialization does not duplicate existing records.
+ * Syncs the garage layout from the simulator. Both sectors and spots are upserted so
+ * re-running initialization on restart always reflects the latest simulator data.
  */
 @Service
 public class GarageInitializerServiceImpl implements GarageInitializerService {
@@ -24,9 +29,10 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
     private static final Logger logger = LoggerFactory.getLogger(GarageInitializerServiceImpl.class);
 
     private final SectorRepository sectorRepository;
-    private final SpotRepository spotRepository;
+    private final ParkingSpotRepository spotRepository;
 
-    public GarageInitializerServiceImpl(SectorRepository sectorRepository, SpotRepository spotRepository) {
+    public GarageInitializerServiceImpl(SectorRepository sectorRepository,
+                                        ParkingSpotRepository spotRepository) {
         this.sectorRepository = sectorRepository;
         this.spotRepository = spotRepository;
     }
@@ -34,47 +40,61 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
     @Override
     @Transactional
     public void initializeGarage(GarageResponse config) {
-        logger.info("Initializing garage from simulator config...");
-
         if (config == null) {
             logger.warn("Received null garage config from simulator.");
             return;
         }
-
-        // Persist sectors
-        if (config.getGarage() != null) {
-            for (GarageResponse.SectorData sectorData : config.getGarage()) {
-                SectorCode code = new SectorCode(sectorData.getSector());
-                Money basePrice = Money.of(sectorData.getBasePrice());
-                Integer maxCapacity = sectorData.getMaxCapacity();
-
-                sectorRepository.findByCode(code)
-                        .orElseGet(() -> {
-                            Sector sector = new Sector(code, basePrice, maxCapacity);
-                            return sectorRepository.save(sector);
-                        });
-                logger.info("Configured Sector: {} with base_price={} max_capacity={}",
-                        sectorData.getSector(), sectorData.getBasePrice(), maxCapacity);
-            }
-        }
-
-        // Persist spots
-        if (config.getSpots() != null) {
-            for (GarageResponse.SpotData spotData : config.getSpots()) {
-                SectorCode code = new SectorCode(spotData.getSector());
-                GeoLocation location = new GeoLocation(spotData.getLat(), spotData.getLng());
-
-                spotRepository.findByExternalId(spotData.getId())
-                        .orElseGet(() -> {
-                            Spot spot = Spot.register(spotData.getId(), code, location);
-                            return spotRepository.save(spot);
-                        });
-            }
-            logger.info("Configured {} spots.", config.getSpots().size());
-        }
-
-        logger.info("Garage initialization completed: {} sectors, {} spots.",
+        initializeSectors(config.getGarage());
+        initializeSpots(config.getSpots());
+        logger.info("Garage synced: {} sectors, {} spots.",
                 config.getGarage() != null ? config.getGarage().size() : 0,
                 config.getSpots() != null ? config.getSpots().size() : 0);
+    }
+
+    private void initializeSectors(List<SectorData> sectors) {
+        if (sectors == null) return;
+        sectors.forEach(this::upsertSector);
+        logger.info("Synced {} sectors.", sectors.size());
+    }
+
+    private void upsertSector(SectorData data) {
+        SectorCode code = new SectorCode(data.getSector());
+        Money basePrice = Money.of(data.getBasePrice());
+        LocalTime openHour = parseTime(data.getOpenHour(), LocalTime.MIDNIGHT);
+        LocalTime closeHour = parseTime(data.getCloseHour(), LocalTime.of(23, 59));
+        Integer durationLimitMinutes = data.getDurationLimitMinutes() != null ? data.getDurationLimitMinutes() : 1440;
+
+        Sector sector = sectorRepository.findByCode(code)
+                .orElseGet(() -> new Sector(code, basePrice, data.getMaxCapacity(),
+                        openHour, closeHour, durationLimitMinutes));
+        sector.update(basePrice, data.getMaxCapacity(), openHour, closeHour, durationLimitMinutes);
+        sectorRepository.save(sector);
+        logger.info("Synced sector {} (price={}, capacity={}, hours={}-{}).",
+                data.getSector(), data.getBasePrice(), data.getMaxCapacity(), openHour, closeHour);
+    }
+
+    private void initializeSpots(List<SpotData> spots) {
+        if (spots == null) return;
+        spots.forEach(this::upsertSpot);
+        logger.info("Synced {} spots.", spots.size());
+    }
+
+    private void upsertSpot(SpotData data) {
+        SectorCode code = new SectorCode(data.getSector());
+        GeoLocation location = new GeoLocation(data.getLat(), data.getLng());
+        ParkingSpot spot = spotRepository.findByExternalId(data.getId())
+                .orElseGet(() -> ParkingSpot.register(data.getId(), code, location));
+        spot.updateLocation(code, location);
+        spotRepository.save(spot);
+    }
+
+    private LocalTime parseTime(String value, LocalTime fallback) {
+        if (value == null || value.isBlank()) return fallback;
+        try {
+            return LocalTime.parse(value);
+        } catch (Exception e) {
+            logger.warn("Could not parse time '{}', using default {}.", value, fallback);
+            return fallback;
+        }
     }
 }

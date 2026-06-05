@@ -8,9 +8,9 @@ import br.com.cmachado.parkingsystem.domain.model.garage.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.garage.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenueRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
-import br.com.cmachado.parkingsystem.domain.model.spot.Spot;
-import br.com.cmachado.parkingsystem.domain.model.spot.SpotRepository;
-import br.com.cmachado.parkingsystem.domain.model.vehicle.VehicleEventRepository;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
+import br.com.cmachado.parkingsystem.domain.model.vehicle.ParkingSessionRepository;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.revenue.RevenueResponse;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
 import org.junit.jupiter.api.AfterEach;
@@ -24,10 +24,10 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -49,10 +49,10 @@ class WebhookApplicationServiceTest {
     private SectorRepository sectorRepository;
 
     @Autowired
-    private SpotRepository spotRepository;
+    private ParkingSpotRepository spotRepository;
 
     @Autowired
-    private VehicleEventRepository vehicleEventRepository;
+    private ParkingSessionRepository sessionRepository;
 
     @Autowired
     private DailyRevenueRepository dailyRevenueRepository;
@@ -61,9 +61,10 @@ class WebhookApplicationServiceTest {
     void setUp() {
         cleanAll();
         SectorCode code = new SectorCode("SEC-A");
-        sectorRepository.save(new Sector(code, Money.of(10.0), 10));
-        spotRepository.save(Spot.register(1L, code, new GeoLocation(10.0, 10.0)));
-        spotRepository.save(Spot.register(2L, code, new GeoLocation(20.0, 20.0)));
+        sectorRepository.save(new Sector(code, Money.of(10.0), 10,
+                LocalTime.MIDNIGHT, LocalTime.of(23, 59), 1440));
+        spotRepository.save(ParkingSpot.register(1L, code, new GeoLocation(10.0, 10.0)));
+        spotRepository.save(ParkingSpot.register(2L, code, new GeoLocation(20.0, 20.0)));
     }
 
     @AfterEach
@@ -72,7 +73,7 @@ class WebhookApplicationServiceTest {
     }
 
     private void cleanAll() {
-        vehicleEventRepository.deleteAll();
+        sessionRepository.deleteAll();
         dailyRevenueRepository.deleteAll();
         spotRepository.deleteAll();
         sectorRepository.deleteAll();
@@ -107,19 +108,19 @@ class WebhookApplicationServiceTest {
     }
 
     @Test
-    void testEntryRejectedWhenGarageFull() {
+    void testEntryRecordedWhenGarageFullEmitsMetric() {
         // Fill both spots so the garage reaches 100% occupancy.
         parkVehicle("AAA1111");
         parkVehicle("BBB2222");
 
+        // Entry while full must succeed (returns 200), not throw.
         WebhookEventRequest entryReq = new WebhookEventRequest();
         entryReq.setLicensePlate("CCC3333");
         entryReq.setEventType("ENTRY");
         entryReq.setEntryTime(LocalDateTime.now().toString());
+        webhookService.processEntry(entryReq);
 
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> webhookService.processEntry(entryReq));
-        assertTrue(ex.getMessage().contains("Garage is full"));
+        assertTrue(sessionRepository.count() >= 3, "entry while full must be stored");
     }
 
     private void parkVehicle(String plate) {

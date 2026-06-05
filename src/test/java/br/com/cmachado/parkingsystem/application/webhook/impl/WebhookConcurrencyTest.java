@@ -7,11 +7,11 @@ import br.com.cmachado.parkingsystem.domain.model.garage.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.garage.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenueRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
-import br.com.cmachado.parkingsystem.domain.model.spot.Spot;
-import br.com.cmachado.parkingsystem.domain.model.spot.SpotRepository;
-import br.com.cmachado.parkingsystem.domain.model.vehicle.VehicleEvent;
-import br.com.cmachado.parkingsystem.domain.model.vehicle.VehicleEventRepository;
-import br.com.cmachado.parkingsystem.domain.model.vehicle.VehicleEventStatus;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
+import br.com.cmachado.parkingsystem.domain.model.vehicle.ParkingSession;
+import br.com.cmachado.parkingsystem.domain.model.vehicle.ParkingSessionRepository;
+import br.com.cmachado.parkingsystem.domain.model.vehicle.ParkingSessionStatus;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.revenue.RevenueResponse;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookRestController;
@@ -26,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -60,10 +61,10 @@ class WebhookConcurrencyTest {
     private SectorRepository sectorRepository;
 
     @Autowired
-    private SpotRepository spotRepository;
+    private ParkingSpotRepository spotRepository;
 
     @Autowired
-    private VehicleEventRepository vehicleEventRepository;
+    private ParkingSessionRepository sessionRepository;
 
     @Autowired
     private DailyRevenueRepository dailyRevenueRepository;
@@ -79,7 +80,7 @@ class WebhookConcurrencyTest {
     }
 
     private void cleanAll() {
-        vehicleEventRepository.deleteAll();
+        sessionRepository.deleteAll();
         dailyRevenueRepository.deleteAll();
         spotRepository.deleteAll();
         sectorRepository.deleteAll();
@@ -93,10 +94,11 @@ class WebhookConcurrencyTest {
     @Test
     void concurrentExitsDoNotLoseRevenue() throws Exception {
         SectorCode code = new SectorCode(SECTOR);
-        sectorRepository.save(new Sector(code, Money.of(10.0), 20));
+        sectorRepository.save(new Sector(code, Money.of(10.0), 20,
+                LocalTime.MIDNIGHT, LocalTime.of(23, 59), 1440));
         int n = 10;
         for (int i = 1; i <= n; i++) {
-            spotRepository.save(Spot.register((long) i, code, new GeoLocation(i, i)));
+            spotRepository.save(ParkingSpot.register((long) i, code, new GeoLocation(i, i)));
         }
 
         List<String> plates = new ArrayList<>();
@@ -118,16 +120,17 @@ class WebhookConcurrencyTest {
     }
 
     /**
-     * Two PARKED events aimed at the same nearest spot race on {@code Spot.version}. The loser
+     * Two PARKED events aimed at the same nearest spot race on {@code ParkingSpot.version}. The loser
      * is retried by the controller, re-reads, and takes the other spot — both vehicles end up
      * parked on distinct spots with no exception leaking.
      */
     @Test
     void concurrentParkedAssignsDistinctSpots() throws Exception {
         SectorCode code = new SectorCode(SECTOR);
-        sectorRepository.save(new Sector(code, Money.of(10.0), 10));
-        spotRepository.save(Spot.register(1L, code, new GeoLocation(10.0, 10.0)));
-        spotRepository.save(Spot.register(2L, code, new GeoLocation(20.0, 20.0)));
+        sectorRepository.save(new Sector(code, Money.of(10.0), 10,
+                LocalTime.MIDNIGHT, LocalTime.of(23, 59), 1440));
+        spotRepository.save(ParkingSpot.register(1L, code, new GeoLocation(10.0, 10.0)));
+        spotRepository.save(ParkingSpot.register(2L, code, new GeoLocation(20.0, 20.0)));
 
         String p1 = "PRK0001";
         String p2 = "PRK0002";
@@ -137,11 +140,11 @@ class WebhookConcurrencyTest {
         // Identical location → both compute the same nearest spot → forces the race.
         runConcurrently(List.of(p1, p2), plate -> park(plate, 10.0, 10.0));
 
-        List<VehicleEvent> events = vehicleEventRepository.findAll();
-        assertEquals(2, events.size());
-        assertTrue(events.stream().allMatch(e -> e.getStatus() == VehicleEventStatus.PARKED),
+        List<ParkingSession> sessions = sessionRepository.findAll();
+        assertEquals(2, sessions.size());
+        assertTrue(sessions.stream().allMatch(s -> s.getStatus() == ParkingSessionStatus.PARKED),
                 "both vehicles must be parked");
-        assertNotEquals(events.get(0).getSpotId(), events.get(1).getSpotId(),
+        assertNotEquals(sessions.get(0).getSpotId(), sessions.get(1).getSpotId(),
                 "vehicles must occupy distinct spots");
         assertEquals(2, spotRepository.countByOccupiedTrue());
     }
@@ -205,9 +208,9 @@ class WebhookConcurrencyTest {
 
     private BigDecimal sumChargedAmounts() {
         BigDecimal sum = BigDecimal.ZERO;
-        for (VehicleEvent event : vehicleEventRepository.findAll()) {
-            if (event.getStatus() == VehicleEventStatus.EXITED && event.getAmountCharged() != null) {
-                sum = sum.add(event.getAmountCharged().getAmount());
+        for (ParkingSession session : sessionRepository.findAll()) {
+            if (session.getStatus() == ParkingSessionStatus.EXITED && session.getAmountCharged() != null) {
+                sum = sum.add(session.getAmountCharged().getAmount());
             }
         }
         return sum;

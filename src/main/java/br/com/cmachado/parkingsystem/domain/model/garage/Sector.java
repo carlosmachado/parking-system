@@ -14,10 +14,12 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalTime;
+
 /**
  * Aggregate root representing a logical division of the garage's spot pool, with its own
- * base price and capacity. Sectors are organizational, not physical: all share the single
- * entrance gate group.
+ * base price, capacity, and operating hours. Sectors are organizational, not physical:
+ * all share the single entrance gate group.
  */
 @jakarta.persistence.Entity
 @Table(name = "sector",
@@ -43,7 +45,17 @@ public class Sector extends AggregateRootBase<Sector> {
     @Column(name = "max_capacity", nullable = false)
     private Integer maxCapacity;
 
-    public Sector(SectorCode code, Money basePrice, Integer maxCapacity) {
+    @Column(name = "open_hour", nullable = false)
+    private LocalTime openHour;
+
+    @Column(name = "close_hour", nullable = false)
+    private LocalTime closeHour;
+
+    @Column(name = "duration_limit_minutes", nullable = false)
+    private Integer durationLimitMinutes;
+
+    public Sector(SectorCode code, Money basePrice, Integer maxCapacity,
+                  LocalTime openHour, LocalTime closeHour, Integer durationLimitMinutes) {
         if (code == null) throw new IllegalArgumentException("SectorCode cannot be null");
         if (basePrice == null) throw new IllegalArgumentException("BasePrice cannot be null");
         if (maxCapacity == null || maxCapacity < 1) throw new IllegalArgumentException("MaxCapacity must be at least 1");
@@ -52,7 +64,25 @@ public class Sector extends AggregateRootBase<Sector> {
         this.code = code;
         this.basePrice = basePrice;
         this.maxCapacity = maxCapacity;
+        this.openHour = openHour != null ? openHour : LocalTime.MIDNIGHT;
+        this.closeHour = closeHour != null ? closeHour : LocalTime.of(23, 59);
+        this.durationLimitMinutes = durationLimitMinutes != null ? durationLimitMinutes : 1440;
         registerEvent(new SectorCreated(this));
+    }
+
+    /** Updates mutable fields to match the latest data from the simulator. */
+    public void update(Money basePrice, Integer maxCapacity,
+                       LocalTime openHour, LocalTime closeHour, Integer durationLimitMinutes) {
+        this.basePrice = basePrice;
+        this.maxCapacity = maxCapacity;
+        this.openHour = openHour != null ? openHour : LocalTime.MIDNIGHT;
+        this.closeHour = closeHour != null ? closeHour : LocalTime.of(23, 59);
+        this.durationLimitMinutes = durationLimitMinutes != null ? durationLimitMinutes : 1440;
+    }
+
+    /** Returns true if the sector is accepting vehicles at the given time. */
+    public boolean isOpen(LocalTime time) {
+        return !time.isBefore(openHour) && !time.isAfter(closeHour);
     }
 
     @Override

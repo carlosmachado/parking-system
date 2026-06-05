@@ -15,33 +15,33 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Identity value object for the {@link VehicleEvent} aggregate. Backed by a ULID-generated
+ * Identity value object for the {@link ParkingSession} aggregate. Backed by a ULID-generated
  * UUID stored as {@code BINARY(16)} in MySQL.
  */
 @EqualsAndHashCode
 @Embeddable
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class VehicleEventId implements ValueObject<VehicleEventId> {
+public class ParkingSessionId implements ValueObject<ParkingSessionId> {
 
     @JdbcTypeCode(SqlTypes.BINARY)
     @Column(name = "id", columnDefinition = "BINARY(16)", nullable = false, updatable = false)
     private UUID value;
 
-    private VehicleEventId(UUID value) {
+    private ParkingSessionId(UUID value) {
         this.value = value;
     }
 
-    public static VehicleEventId generate() {
-        return new VehicleEventId(UlidCreator.getMonotonicUlid().toUuid());
+    public static ParkingSessionId generate() {
+        return new ParkingSessionId(UlidCreator.getMonotonicUlid().toUuid());
     }
 
-    public static VehicleEventId of(UUID value) {
-        return new VehicleEventId(value);
+    public static ParkingSessionId of(UUID value) {
+        return new ParkingSessionId(value);
     }
 
     @Override
-    public boolean sameValueAs(VehicleEventId other) {
+    public boolean sameValueAs(ParkingSessionId other) {
         return other != null && Objects.equals(this.value, other.value);
     }
 

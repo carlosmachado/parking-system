@@ -2,7 +2,7 @@ package br.com.cmachado.parkingsystem.domain.service.occupancy;
 
 import br.com.cmachado.parkingsystem.domain.model.garage.OccupancyRate;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
-import br.com.cmachado.parkingsystem.domain.model.spot.Spot;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.shared.DomainService;
 import org.springframework.stereotype.Service;
 
@@ -28,23 +28,21 @@ public class OccupancyDomainService {
             return new OccupancyRate(0.0, LocalDateTime.now());
         }
         double rate = (double) occupiedSpots / totalSpots;
-        // Cap at 1.0 just in case
         return new OccupancyRate(Math.min(1.0, rate), LocalDateTime.now());
     }
 
-    public Optional<Spot> findNearestAvailableSpot(List<Spot> availableSpots, GeoLocation currentLoc) {
-        if (availableSpots == null || availableSpots.isEmpty()) {
+    public Optional<ParkingSpot> findNearestAvailableSpot(List<ParkingSpot> spots, GeoLocation currentLoc) {
+        if (spots == null || spots.isEmpty()) {
             return Optional.empty();
         }
         if (currentLoc == null) {
-            // If we don't know where the car is, just return the first available
-            return Optional.of(availableSpots.get(0));
+            return Optional.of(spots.get(0));
         }
 
-        Spot nearest = null;
+        ParkingSpot nearest = null;
         double minDistance = Double.MAX_VALUE;
 
-        for (Spot spot : availableSpots) {
+        for (ParkingSpot spot : spots) {
             double distance = spot.getLocation().calculateDistance(currentLoc);
             if (distance < minDistance) {
                 minDistance = distance;

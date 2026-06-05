@@ -1,15 +1,15 @@
 package br.com.cmachado.parkingsystem.domain.model.spot.events;
 
-import br.com.cmachado.parkingsystem.domain.model.spot.Spot;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.shared.DomainEvent;
 import lombok.Getter;
 
 @Getter
-public class SpotRegistered extends DomainEvent {
+public class ParkingSpotRegistered extends DomainEvent {
 
-    private final Spot spot;
+    private final ParkingSpot spot;
 
-    public SpotRegistered(Spot spot) {
+    public ParkingSpotRegistered(ParkingSpot spot) {
         super(spot);
         this.spot = spot;
     }
