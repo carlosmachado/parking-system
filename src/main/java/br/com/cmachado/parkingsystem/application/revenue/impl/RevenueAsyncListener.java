@@ -1,6 +1,10 @@
 package br.com.cmachado.parkingsystem.application.revenue.impl;
 
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleExited;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Async;
@@ -17,40 +21,63 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * only race left is the very first exit of the day, where two transactions can both try to
  * insert the row; the loser hits the unique constraint and this retry loop re-runs it, by
  * which point the row exists and the locked path applies.</p>
+ *
+ * <p>Because there is no outbox or event queue, this listener must never propagate a failure:
+ * a thrown exception from an {@code @Async} method is only logged by Spring's uncaught handler,
+ * and the revenue increment would be permanently lost. After exhausting retries the failure is
+ * logged as an ERROR and a Micrometer counter is incremented, but execution always returns
+ * normally.</p>
  */
 @Component
 public class RevenueAsyncListener {
 
+    private static final Logger logger = LoggerFactory.getLogger(RevenueAsyncListener.class);
+
     /** Attempts for the cold-start insert race on a sector's first exit of the day. */
-    private static final int MAX_ATTEMPTS = 3;
+    private static final int MAX_ATTEMPTS = 5;
 
     private final RevenueUpdater revenueUpdater;
+    private final Counter revenueFailedCounter;
 
-    public RevenueAsyncListener(RevenueUpdater revenueUpdater) {
+    public RevenueAsyncListener(RevenueUpdater revenueUpdater, MeterRegistry meterRegistry) {
         this.revenueUpdater = revenueUpdater;
+        this.revenueFailedCounter = Counter.builder("revenue.update.failed")
+                .description("Revenue increments permanently lost due to persistent DB failure")
+                .register(meterRegistry);
     }
 
     /**
      * Adds the charged amount to the sector's running total for the exit date. Zero/empty
-     * charges are skipped. Retries on optimistic-lock conflict so concurrent exits don't lose
-     * updates.
+     * charges are skipped. Retries with exponential backoff on transient DB conflicts so
+     * concurrent exits don't lose updates. Never propagates an exception.
      */
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleVehicleExited(VehicleExited event) {
         if (event.getAmountCharged() == null || event.getAmountCharged().getAmount().signum() == 0) {
-            return; // No revenue to add
+            return;
         }
-
-        for (int attempt = 1; ; attempt++) {
-            try {
-                revenueUpdater.addRevenue(event.getSectorCode(), event.getExitDate(), event.getAmountCharged());
-                return;
-            } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
-                if (attempt >= MAX_ATTEMPTS) {
-                    throw ex;
+        try {
+            for (int attempt = 1; ; attempt++) {
+                try {
+                    revenueUpdater.addRevenue(event.getSectorCode(), event.getExitDate(), event.getAmountCharged());
+                    return;
+                } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
+                    if (attempt >= MAX_ATTEMPTS) {
+                        throw ex;
+                    }
+                    Thread.sleep(50L * attempt); // 50ms, 100ms, 150ms, 200ms
                 }
             }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            revenueFailedCounter.increment();
+            logger.error("Revenue update interrupted — increment lost: sector={} date={} amount={}",
+                    event.getSectorCode(), event.getExitDate(), event.getAmountCharged(), ex);
+        } catch (Exception ex) {
+            revenueFailedCounter.increment();
+            logger.error("Revenue update failed after {} attempts — increment lost: sector={} date={} amount={}",
+                    MAX_ATTEMPTS, event.getSectorCode(), event.getExitDate(), event.getAmountCharged(), ex);
         }
     }
 }
