@@ -10,21 +10,21 @@ class LicensePlateTest {
 
     @Test
     void normalizesToUpperCaseAlphanumeric() {
-        assertEquals("ZUL0001", new LicensePlate(" zul-0001 ").getPlate());
+        assertEquals("ZUL0001", LicensePlate.of(" zul-0001 ").getPlate());
     }
 
     @Test
     void equalPlatesAreValueEqual() {
-        assertTrue(new LicensePlate("abc1234").sameValueAs(new LicensePlate("ABC-1234")));
+        assertTrue(LicensePlate.of("abc1234").sameValueAs(LicensePlate.of("ABC-1234")));
     }
 
     @Test
     void rejectsNullPlate() {
-        assertThrows(NullPointerException.class, () -> new LicensePlate(null));
+        assertThrows(NullPointerException.class, () -> LicensePlate.of(null));
     }
 
     @Test
     void rejectsBlankPlate() {
-        assertThrows(IllegalArgumentException.class, () -> new LicensePlate("   "));
+        assertThrows(IllegalArgumentException.class, () -> LicensePlate.of("   "));
     }
 }

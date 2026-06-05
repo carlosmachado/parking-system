@@ -14,6 +14,9 @@ import java.util.Objects;
 /**
  * Value object for a parking interval (entry to exit). Exposes the stay duration in
  * minutes, used by the pricing strategies. Exit must not precede entry.
+ *
+ * <p>Immutable: use {@link #start(LocalDateTime)} to create an open period and
+ * {@link #end(LocalDateTime)} to produce a new closed instance.</p>
  */
 @Embeddable
 @Getter
@@ -26,16 +29,29 @@ public class Period implements ValueObject<Period> {
     @Column(name = "exit_time")
     private LocalDateTime exitTime;
 
-    public Period(LocalDateTime entryTime) {
-        this.entryTime = Objects.requireNonNull(entryTime, "Entry time cannot be null");
+    private Period(LocalDateTime entryTime, LocalDateTime exitTime) {
+        this.entryTime = entryTime;
+        this.exitTime = exitTime;
     }
 
-    public void setExitTime(LocalDateTime exitTime) {
+    /** Creates an open period (no exit time yet). */
+    public static Period start(LocalDateTime entryTime) {
+        Objects.requireNonNull(entryTime, "Entry time cannot be null");
+        return new Period(entryTime, null);
+    }
+
+    /**
+     * Returns a new closed period with the given exit time.
+     *
+     * @throws NullPointerException     if exitTime is null
+     * @throws IllegalArgumentException if exitTime precedes entryTime
+     */
+    public Period end(LocalDateTime exitTime) {
         Objects.requireNonNull(exitTime, "Exit time cannot be null");
         if (exitTime.isBefore(entryTime)) {
             throw new IllegalArgumentException("Exit time cannot be before entry time");
         }
-        this.exitTime = exitTime;
+        return new Period(entryTime, exitTime);
     }
 
     public long getDurationInMinutes() {
@@ -55,8 +71,7 @@ public class Period implements ValueObject<Period> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Period period = (Period) o;
-        return sameValueAs(period);
+        return sameValueAs((Period) o);
     }
 
     @Override

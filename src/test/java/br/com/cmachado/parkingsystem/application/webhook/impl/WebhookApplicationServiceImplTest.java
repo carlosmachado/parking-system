@@ -90,7 +90,7 @@ class WebhookApplicationServiceImplTest {
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         verify(sessionRepository).save(sessionCaptor.capture());
 
-        assertEquals(new LicensePlate("FULL123"), eventCaptor.getValue().getLicensePlate());
+        assertEquals(LicensePlate.of("FULL123"), eventCaptor.getValue().getLicensePlate());
         assertEquals(LocalDateTime.parse("2025-01-01T10:00:00"), eventCaptor.getValue().getOccurredAt());
         assertEquals(ParkingSessionStatus.ENTERED, sessionCaptor.getValue().getStatus());
     }
@@ -114,7 +114,7 @@ class WebhookApplicationServiceImplTest {
         Sector openSector = sector("OPEN", LocalTime.MIDNIGHT, LocalTime.of(23, 59));
         Sector closedSector = sector("CLOSED", LocalTime.of(0, 0), LocalTime.of(0, 1));
 
-        when(sessionRepository.findByLicensePlateAndStatusIn(new LicensePlate("CAR0001"), List.of(ParkingSessionStatus.ENTERED)))
+        when(sessionRepository.findByLicensePlateAndStatusIn(LicensePlate.of("CAR0001"), List.of(ParkingSessionStatus.ENTERED)))
                 .thenReturn(Optional.of(session));
         when(sectorRepository.findAll()).thenReturn(List.of(openSector, closedSector));
         when(spotRepository.findByOccupiedFalseAndSectorCodeIn(anyCollection()))
@@ -123,7 +123,7 @@ class WebhookApplicationServiceImplTest {
         service.processParked(parked("CAR0001", 0.0, 0.0));
 
         assertEquals(openSpot.getId(), session.getSpotId());
-        assertEquals(new SectorCode("OPEN"), session.getSectorCode());
+        assertEquals(SectorCode.of("OPEN"), session.getSectorCode());
         assertTrue(openSpot.isOccupied());
         assertFalse(closedSpot.isOccupied());
         verify(spotRepository).save(openSpot);
@@ -136,7 +136,7 @@ class WebhookApplicationServiceImplTest {
         ParkingSpot fallbackSpot = spot(1L, "CLOSED", 10.0, 10.0);
         Sector closedSector = sector("CLOSED", LocalTime.of(0, 0), LocalTime.of(0, 1));
 
-        when(sessionRepository.findByLicensePlateAndStatusIn(new LicensePlate("CAR0002"), List.of(ParkingSessionStatus.ENTERED)))
+        when(sessionRepository.findByLicensePlateAndStatusIn(LicensePlate.of("CAR0002"), List.of(ParkingSessionStatus.ENTERED)))
                 .thenReturn(Optional.of(session));
         when(sectorRepository.findAll()).thenReturn(List.of(closedSector));
         when(spotRepository.findByOccupiedFalse()).thenReturn(List.of(fallbackSpot));
@@ -153,7 +153,7 @@ class WebhookApplicationServiceImplTest {
         ParkingSession session = entered("CAR0003");
         Sector openSector = sector("OPEN", LocalTime.MIDNIGHT, LocalTime.of(23, 59));
 
-        when(sessionRepository.findByLicensePlateAndStatusIn(new LicensePlate("CAR0003"), List.of(ParkingSessionStatus.ENTERED)))
+        when(sessionRepository.findByLicensePlateAndStatusIn(LicensePlate.of("CAR0003"), List.of(ParkingSessionStatus.ENTERED)))
                 .thenReturn(Optional.of(session));
         when(sectorRepository.findAll()).thenReturn(List.of(openSector));
         when(spotRepository.findByOccupiedFalseAndSectorCodeIn(anyCollection()))
@@ -173,7 +173,7 @@ class WebhookApplicationServiceImplTest {
     void exitFromEnteredSessionChargesZero() {
         ParkingSession session = entered("EXIT001");
         when(sessionRepository.findByLicensePlateAndStatusIn(
-                new LicensePlate("EXIT001"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
+                LicensePlate.of("EXIT001"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
 
         service.processExit(exit("EXIT001", LocalDateTime.parse("2025-01-01T11:00:00")));
@@ -186,9 +186,9 @@ class WebhookApplicationServiceImplTest {
 
     @Test
     void exitWithMissingSpotChargesZeroAndDoesNotCrash() {
-        ParkingSession session = parkedSession("EXIT002", ParkingSpotId.generate(), new SectorCode("A"));
+        ParkingSession session = parkedSession("EXIT002", ParkingSpotId.generate(), SectorCode.of("A"));
         when(sessionRepository.findByLicensePlateAndStatusIn(
-                new LicensePlate("EXIT002"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
+                LicensePlate.of("EXIT002"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
         when(spotRepository.findById(session.getSpotId())).thenReturn(Optional.empty());
 
@@ -203,12 +203,12 @@ class WebhookApplicationServiceImplTest {
     void exitWithMissingSectorChargesZeroAndReleasesSpot() {
         ParkingSpot spot = spot(1L, "A", 10.0, 10.0);
         spot.occupy();
-        ParkingSession session = parkedSession("EXIT003", spot.getId(), new SectorCode("A"));
+        ParkingSession session = parkedSession("EXIT003", spot.getId(), SectorCode.of("A"));
         when(sessionRepository.findByLicensePlateAndStatusIn(
-                new LicensePlate("EXIT003"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
+                LicensePlate.of("EXIT003"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
         when(spotRepository.findById(spot.getId())).thenReturn(Optional.of(spot));
-        when(sectorRepository.findByCode(new SectorCode("A"))).thenReturn(Optional.empty());
+        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.empty());
         when(sessionRepository.existsBySpotIdAndStatusAndIdNot(spot.getId(), ParkingSessionStatus.PARKED, session.getId()))
                 .thenReturn(false);
 
@@ -247,7 +247,7 @@ class WebhookApplicationServiceImplTest {
     }
 
     private ParkingSession entered(String plate) {
-        return ParkingSession.enter(new LicensePlate(plate), LocalDateTime.parse("2025-01-01T10:00:00"));
+        return ParkingSession.enter(LicensePlate.of(plate), LocalDateTime.parse("2025-01-01T10:00:00"));
     }
 
     private ParkingSession parkedSession(String plate, ParkingSpotId spotId, SectorCode sectorCode) {
@@ -257,10 +257,10 @@ class WebhookApplicationServiceImplTest {
     }
 
     private ParkingSpot spot(Long externalId, String sectorCode, double lat, double lng) {
-        return ParkingSpot.register(externalId, new SectorCode(sectorCode), new GeoLocation(lat, lng));
+        return ParkingSpot.register(externalId, SectorCode.of(sectorCode), GeoLocation.of(lat, lng));
     }
 
     private Sector sector(String code, LocalTime openHour, LocalTime closeHour) {
-        return new Sector(new SectorCode(code), Money.of("10.00"), 10, openHour, closeHour, 1440);
+        return new Sector(SectorCode.of(code), Money.of("10.00"), 10, openHour, closeHour, 1440);
     }
 }

@@ -25,10 +25,10 @@ public class OccupancyDomainService {
 
     public OccupancyRate calculateOccupancyRate(int totalSpots, int occupiedSpots) {
         if (totalSpots == 0) {
-            return new OccupancyRate(0.0, LocalDateTime.now());
+            return OccupancyRate.of(0.0, LocalDateTime.now());
         }
         double rate = (double) occupiedSpots / totalSpots;
-        return new OccupancyRate(Math.min(1.0, rate), LocalDateTime.now());
+        return OccupancyRate.of(Math.min(1.0, rate), LocalDateTime.now());
     }
 
     public Optional<ParkingSpot> findNearestAvailableSpot(List<ParkingSpot> spots, GeoLocation currentLoc) {

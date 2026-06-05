@@ -58,7 +58,7 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
     }
 
     private void upsertSector(SectorData data) {
-        SectorCode code = new SectorCode(data.getSector());
+        SectorCode code = SectorCode.of(data.getSector());
         Money basePrice = Money.of(data.getBasePrice());
         LocalTime openHour = parseTime(data.getOpenHour(), LocalTime.MIDNIGHT);
         LocalTime closeHour = parseTime(data.getCloseHour(), LocalTime.of(23, 59));
@@ -80,8 +80,8 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
     }
 
     private void upsertSpot(SpotData data) {
-        SectorCode code = new SectorCode(data.getSector());
-        GeoLocation location = new GeoLocation(data.getLat(), data.getLng());
+        SectorCode code = SectorCode.of(data.getSector());
+        GeoLocation location = GeoLocation.of(data.getLat(), data.getLng());
         ParkingSpot spot = spotRepository.findByExternalId(data.getId())
                 .orElseGet(() -> ParkingSpot.register(data.getId(), code, location));
         spot.updateLocation(code, location);

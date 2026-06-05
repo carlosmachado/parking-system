@@ -20,12 +20,16 @@ public class SectorCode implements ValueObject<SectorCode> {
     @Column(name = "code", length = 10, nullable = false, unique = true)
     private String code;
 
-    public SectorCode(String code) {
+    private SectorCode(String code) {
+        this.code = code.trim().toUpperCase();
+    }
+
+    public static SectorCode of(String code) {
         Objects.requireNonNull(code, "Sector code cannot be null");
         if (code.trim().isEmpty()) {
             throw new IllegalArgumentException("Sector code cannot be blank");
         }
-        this.code = code.trim().toUpperCase();
+        return new SectorCode(code);
     }
 
     @Override

@@ -53,7 +53,7 @@ class GarageInitializerServiceImplTest {
     void createsSectorsAndSpotsFromSimulatorConfig() {
         GarageResponse config = config(List.of(sector("A", 10.0, 100, "08:00", "20:00", 240)),
                 List.of(spot(1L, "A", -23.0, -46.0)));
-        when(sectorRepository.findByCode(new SectorCode("A"))).thenReturn(Optional.empty());
+        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.empty());
         when(spotRepository.findByExternalId(1L)).thenReturn(Optional.empty());
 
         service.initializeGarage(config);
@@ -64,7 +64,7 @@ class GarageInitializerServiceImplTest {
         verify(spotRepository).save(spotCaptor.capture());
 
         Sector savedSector = sectorCaptor.getValue();
-        assertEquals(new SectorCode("A"), savedSector.getCode());
+        assertEquals(SectorCode.of("A"), savedSector.getCode());
         assertEquals(Money.of("10.00"), savedSector.getBasePrice());
         assertEquals(100, savedSector.getMaxCapacity());
         assertEquals(LocalTime.of(8, 0), savedSector.getOpenHour());
@@ -73,17 +73,17 @@ class GarageInitializerServiceImplTest {
 
         ParkingSpot savedSpot = spotCaptor.getValue();
         assertEquals(1L, savedSpot.getExternalId());
-        assertEquals(new SectorCode("A"), savedSpot.getSectorCode());
+        assertEquals(SectorCode.of("A"), savedSpot.getSectorCode());
         assertEquals(-23.0, savedSpot.getLocation().getLat());
         assertEquals(-46.0, savedSpot.getLocation().getLng());
     }
 
     @Test
     void updatesExistingSectorWithLatestSimulatorData() {
-        Sector existing = new Sector(new SectorCode("A"), Money.of("8.00"), 50,
+        Sector existing = new Sector(SectorCode.of("A"), Money.of("8.00"), 50,
                 LocalTime.of(7, 0), LocalTime.of(18, 0), 120);
         GarageResponse config = config(List.of(sector("A", 12.5, 80, "09:00", "21:30", 300)), null);
-        when(sectorRepository.findByCode(new SectorCode("A"))).thenReturn(Optional.of(existing));
+        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.of(existing));
 
         service.initializeGarage(config);
 
@@ -97,14 +97,14 @@ class GarageInitializerServiceImplTest {
 
     @Test
     void updatesExistingSpotByExternalId() {
-        ParkingSpot existing = ParkingSpot.register(7L, new SectorCode("A"), new GeoLocation(1.0, 1.0));
+        ParkingSpot existing = ParkingSpot.register(7L, SectorCode.of("A"), GeoLocation.of(1.0, 1.0));
         GarageResponse config = config(null, List.of(spot(7L, "B", 2.0, 3.0)));
         when(spotRepository.findByExternalId(7L)).thenReturn(Optional.of(existing));
 
         service.initializeGarage(config);
 
         verify(spotRepository).save(existing);
-        assertEquals(new SectorCode("B"), existing.getSectorCode());
+        assertEquals(SectorCode.of("B"), existing.getSectorCode());
         assertEquals(2.0, existing.getLocation().getLat());
         assertEquals(3.0, existing.getLocation().getLng());
     }
@@ -112,7 +112,7 @@ class GarageInitializerServiceImplTest {
     @Test
     void blankTimesAndMissingDurationUseDefaults() {
         GarageResponse config = config(List.of(sector("A", 10.0, 10, " ", "", null)), null);
-        when(sectorRepository.findByCode(new SectorCode("A"))).thenReturn(Optional.empty());
+        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.empty());
 
         service.initializeGarage(config);
 
@@ -126,7 +126,7 @@ class GarageInitializerServiceImplTest {
     @Test
     void invalidTimesUseDefaults() {
         GarageResponse config = config(List.of(sector("A", 10.0, 10, "not-time", "25:99", 60)), null);
-        when(sectorRepository.findByCode(new SectorCode("A"))).thenReturn(Optional.empty());
+        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.empty());
 
         service.initializeGarage(config);
 

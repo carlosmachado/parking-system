@@ -21,12 +21,16 @@ public class LicensePlate implements ValueObject<LicensePlate> {
     @Column(name = "license_plate", length = 20, nullable = false)
     private String plate;
 
-    public LicensePlate(String plate) {
+    private LicensePlate(String plate) {
+        this.plate = plate.trim().toUpperCase().replaceAll("[^A-Z0-9]", "");
+    }
+
+    public static LicensePlate of(String plate) {
         Objects.requireNonNull(plate, "License plate cannot be null");
         if (plate.trim().isEmpty()) {
             throw new IllegalArgumentException("License plate cannot be blank");
         }
-        this.plate = plate.trim().toUpperCase().replaceAll("[^A-Z0-9]", "");
+        return new LicensePlate(plate);
     }
 
     @Override

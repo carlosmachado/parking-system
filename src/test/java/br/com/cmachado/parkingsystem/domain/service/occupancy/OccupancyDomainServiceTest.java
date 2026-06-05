@@ -34,8 +34,8 @@ class OccupancyDomainServiceTest {
 
     @Test
     void nearestSpotReturnsEmptyForNullOrEmptyCandidates() {
-        assertTrue(service.findNearestAvailableSpot(null, new GeoLocation(0.0, 0.0)).isEmpty());
-        assertTrue(service.findNearestAvailableSpot(List.of(), new GeoLocation(0.0, 0.0)).isEmpty());
+        assertTrue(service.findNearestAvailableSpot(null, GeoLocation.of(0.0, 0.0)).isEmpty());
+        assertTrue(service.findNearestAvailableSpot(List.of(), GeoLocation.of(0.0, 0.0)).isEmpty());
     }
 
     @Test
@@ -53,12 +53,12 @@ class OccupancyDomainServiceTest {
         ParkingSpot middle = spot(3L, 11.0, 11.0);
 
         ParkingSpot selected = service.findNearestAvailableSpot(
-                List.of(far, near, middle), new GeoLocation(10.0, 10.0)).orElseThrow();
+                List.of(far, near, middle), GeoLocation.of(10.0, 10.0)).orElseThrow();
 
         assertSame(near, selected);
     }
 
     private ParkingSpot spot(Long externalId, double lat, double lng) {
-        return ParkingSpot.register(externalId, new SectorCode("A"), new GeoLocation(lat, lng));
+        return ParkingSpot.register(externalId, SectorCode.of("A"), GeoLocation.of(lat, lng));
     }
 }

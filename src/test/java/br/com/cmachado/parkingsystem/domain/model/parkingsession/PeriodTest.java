@@ -13,9 +13,8 @@ class PeriodTest {
     void testDurationCalculation() {
         LocalDateTime entry = LocalDateTime.of(2023, 10, 1, 10, 0);
         LocalDateTime exit = LocalDateTime.of(2023, 10, 1, 11, 30);
-        
-        Period period = new Period(entry);
-        period.setExitTime(exit);
+
+        Period period = Period.start(entry).end(exit);
 
         assertEquals(90, period.getDurationInMinutes());
     }
@@ -23,11 +22,11 @@ class PeriodTest {
     @Test
     void testInvalidExitTime() {
         LocalDateTime entry = LocalDateTime.of(2023, 10, 1, 10, 0);
-        LocalDateTime exit = LocalDateTime.of(2023, 10, 1, 9, 30); // Before entry
-        
-        Period period = new Period(entry);
-        
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> period.setExitTime(exit));
+        LocalDateTime exit = LocalDateTime.of(2023, 10, 1, 9, 30);
+
+        Period period = Period.start(entry);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> period.end(exit));
         assertEquals("Exit time cannot be before entry time", ex.getMessage());
     }
 }

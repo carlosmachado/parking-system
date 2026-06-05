@@ -21,12 +21,17 @@ public class OccupancyRate implements ValueObject<OccupancyRate> {
     private double rate;
     private LocalDateTime timestamp;
 
-    public OccupancyRate(double rate, LocalDateTime timestamp) {
+    private OccupancyRate(double rate, LocalDateTime timestamp) {
+        this.rate = rate;
+        this.timestamp = timestamp;
+    }
+
+    public static OccupancyRate of(double rate, LocalDateTime timestamp) {
         if (rate < 0.0 || rate > 1.0) {
             throw new IllegalArgumentException("Occupancy rate must be between 0.0 and 1.0");
         }
-        this.rate = rate;
-        this.timestamp = Objects.requireNonNull(timestamp, "Timestamp cannot be null");
+        Objects.requireNonNull(timestamp, "Timestamp cannot be null");
+        return new OccupancyRate(rate, timestamp);
     }
 
     @Override

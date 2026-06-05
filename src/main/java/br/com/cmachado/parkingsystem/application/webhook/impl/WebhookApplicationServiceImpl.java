@@ -74,7 +74,7 @@ public class WebhookApplicationServiceImpl implements WebhookApplicationService 
     @Override
     @Transactional
     public void processEntry(WebhookEventRequest request) {
-        LicensePlate licensePlate = new LicensePlate(request.getLicensePlate());
+        LicensePlate licensePlate = LicensePlate.of(request.getLicensePlate());
         LocalDateTime entryTime = LocalDateTime.parse(request.getEntryTime(), FORMATTER);
 
         int totalSpots = (int) spotRepository.count();
@@ -94,7 +94,7 @@ public class WebhookApplicationServiceImpl implements WebhookApplicationService 
     @Override
     @Transactional
     public void processParked(WebhookEventRequest request) {
-        LicensePlate licensePlate = new LicensePlate(request.getLicensePlate());
+        LicensePlate licensePlate = LicensePlate.of(request.getLicensePlate());
         LocalDateTime parkedTime = LocalDateTime.now();
 
         ParkingSession session = sessionRepository.findByLicensePlateAndStatusIn(
@@ -103,7 +103,7 @@ public class WebhookApplicationServiceImpl implements WebhookApplicationService 
                         "No ENTERED session found for plate " + licensePlate));
 
         GeoLocation currentLoc = (request.getLat() != null && request.getLng() != null)
-                ? new GeoLocation(request.getLat(), request.getLng()) : null;
+                ? GeoLocation.of(request.getLat(), request.getLng()) : null;
 
         ParkingSpot spot = findSpotForParking(currentLoc, licensePlate);
         if (spot == null) {
@@ -124,7 +124,7 @@ public class WebhookApplicationServiceImpl implements WebhookApplicationService 
     @Override
     @Transactional
     public void processExit(WebhookEventRequest request) {
-        LicensePlate licensePlate = new LicensePlate(request.getLicensePlate());
+        LicensePlate licensePlate = LicensePlate.of(request.getLicensePlate());
         LocalDateTime exitTime = LocalDateTime.parse(request.getExitTime(), FORMATTER);
 
         ParkingSession session = sessionRepository.findByLicensePlateAndStatusIn(
@@ -146,8 +146,7 @@ public class WebhookApplicationServiceImpl implements WebhookApplicationService 
                     OccupancyRate occupancyRate = occupancyDomainService.calculateOccupancyRate(totalSpots, occupiedSpots);
                     PricingStrategy pricingStrategy = pricingStrategyFactory.getStrategy(occupancyRate);
 
-                    Period tempPeriod = new Period(session.getPeriod().getEntryTime());
-                    tempPeriod.setExitTime(exitTime);
+                    Period tempPeriod = session.getPeriod().end(exitTime);
                     amountCharged = pricingStrategy.calculate(tempPeriod, sector.getBasePrice());
                 }
 

@@ -21,9 +21,7 @@ class PricingStrategiesTest {
 
     @Test
     void testFreeFirst30Minutes() {
-        Period period = new Period(LocalDateTime.now().minusMinutes(20));
-        period.setExitTime(LocalDateTime.now());
-        
+        Period period = Period.start(LocalDateTime.now().minusMinutes(20)).end(LocalDateTime.now());
         Money basePrice = Money.of(10.00);
 
         assertEquals(Money.ZERO, standardStrategy.calculate(period, basePrice));
@@ -31,9 +29,7 @@ class PricingStrategiesTest {
 
     @Test
     void testStandardPricing1Hour() {
-        Period period = new Period(LocalDateTime.now().minusMinutes(60));
-        period.setExitTime(LocalDateTime.now());
-        
+        Period period = Period.start(LocalDateTime.now().minusMinutes(60)).end(LocalDateTime.now());
         Money basePrice = Money.of(10.00);
 
         assertEquals(Money.of(10.00), standardStrategy.calculate(period, basePrice));
@@ -41,9 +37,7 @@ class PricingStrategiesTest {
 
     @Test
     void testStandardPricingFractionOfHourRoundsUp() {
-        Period period = new Period(LocalDateTime.now().minusMinutes(65));
-        period.setExitTime(LocalDateTime.now());
-        
+        Period period = Period.start(LocalDateTime.now().minusMinutes(65)).end(LocalDateTime.now());
         Money basePrice = Money.of(10.00);
 
         // 65 minutes = 2 hours
@@ -52,9 +46,7 @@ class PricingStrategiesTest {
 
     @Test
     void testDiscountStrategy() {
-        Period period = new Period(LocalDateTime.now().minusMinutes(60));
-        period.setExitTime(LocalDateTime.now());
-        
+        Period period = Period.start(LocalDateTime.now().minusMinutes(60)).end(LocalDateTime.now());
         Money basePrice = Money.of(10.00);
 
         assertEquals(Money.of(9.00), discountStrategy.calculate(period, basePrice));
@@ -62,9 +54,7 @@ class PricingStrategiesTest {
 
     @Test
     void testSurcharge10Strategy() {
-        Period period = new Period(LocalDateTime.now().minusMinutes(60));
-        period.setExitTime(LocalDateTime.now());
-        
+        Period period = Period.start(LocalDateTime.now().minusMinutes(60)).end(LocalDateTime.now());
         Money basePrice = Money.of(10.00);
 
         assertEquals(Money.of(11.00), surcharge10Strategy.calculate(period, basePrice));
@@ -72,9 +62,7 @@ class PricingStrategiesTest {
 
     @Test
     void testSurcharge25Strategy() {
-        Period period = new Period(LocalDateTime.now().minusMinutes(60));
-        period.setExitTime(LocalDateTime.now());
-        
+        Period period = Period.start(LocalDateTime.now().minusMinutes(60)).end(LocalDateTime.now());
         Money basePrice = Money.of(10.00);
 
         assertEquals(Money.of(12.50), surcharge25Strategy.calculate(period, basePrice));
@@ -82,10 +70,10 @@ class PricingStrategiesTest {
 
     @Test
     void testFactoryReturnsCorrectStrategy() {
-        assertEquals(discountStrategy, factory.getStrategy(new OccupancyRate(0.10, LocalDateTime.now())));
-        assertEquals(standardStrategy, factory.getStrategy(new OccupancyRate(0.30, LocalDateTime.now())));
-        assertEquals(surcharge10Strategy, factory.getStrategy(new OccupancyRate(0.60, LocalDateTime.now())));
-        assertEquals(surcharge25Strategy, factory.getStrategy(new OccupancyRate(0.80, LocalDateTime.now())));
-        assertEquals(surcharge25Strategy, factory.getStrategy(new OccupancyRate(1.00, LocalDateTime.now())));
+        assertEquals(discountStrategy, factory.getStrategy(OccupancyRate.of(0.10, LocalDateTime.now())));
+        assertEquals(standardStrategy, factory.getStrategy(OccupancyRate.of(0.30, LocalDateTime.now())));
+        assertEquals(surcharge10Strategy, factory.getStrategy(OccupancyRate.of(0.60, LocalDateTime.now())));
+        assertEquals(surcharge25Strategy, factory.getStrategy(OccupancyRate.of(0.80, LocalDateTime.now())));
+        assertEquals(surcharge25Strategy, factory.getStrategy(OccupancyRate.of(1.00, LocalDateTime.now())));
     }
 }

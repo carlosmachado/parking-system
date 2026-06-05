@@ -93,12 +93,12 @@ class WebhookConcurrencyTest {
      */
     @Test
     void concurrentExitsDoNotLoseRevenue() throws Exception {
-        SectorCode code = new SectorCode(SECTOR);
+        SectorCode code = SectorCode.of(SECTOR);
         sectorRepository.save(new Sector(code, Money.of(10.0), 20,
                 LocalTime.MIDNIGHT, LocalTime.of(23, 59), 1440));
         int n = 10;
         for (int i = 1; i <= n; i++) {
-            spotRepository.save(ParkingSpot.register((long) i, code, new GeoLocation(i, i)));
+            spotRepository.save(ParkingSpot.register((long) i, code, GeoLocation.of(i, i)));
         }
 
         List<String> plates = new ArrayList<>();
@@ -126,11 +126,11 @@ class WebhookConcurrencyTest {
      */
     @Test
     void concurrentParkedAssignsDistinctSpots() throws Exception {
-        SectorCode code = new SectorCode(SECTOR);
+        SectorCode code = SectorCode.of(SECTOR);
         sectorRepository.save(new Sector(code, Money.of(10.0), 10,
                 LocalTime.MIDNIGHT, LocalTime.of(23, 59), 1440));
-        spotRepository.save(ParkingSpot.register(1L, code, new GeoLocation(10.0, 10.0)));
-        spotRepository.save(ParkingSpot.register(2L, code, new GeoLocation(20.0, 20.0)));
+        spotRepository.save(ParkingSpot.register(1L, code, GeoLocation.of(10.0, 10.0)));
+        spotRepository.save(ParkingSpot.register(2L, code, GeoLocation.of(20.0, 20.0)));
 
         String p1 = "PRK0001";
         String p2 = "PRK0002";

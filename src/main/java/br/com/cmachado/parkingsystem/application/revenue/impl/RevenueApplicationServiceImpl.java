@@ -30,7 +30,7 @@ public class RevenueApplicationServiceImpl implements RevenueApplicationService 
     @Transactional(readOnly = true)
     public RevenueResponse getRevenue(LocalDate date, String sectorCode) {
         DailyRevenue dailyRevenue = dailyRevenueRepository
-                .findBySectorCodeAndDate(new SectorCode(sectorCode), date)
+                .findBySectorCodeAndDate(SectorCode.of(sectorCode), date)
                 .orElse(null);
 
         BigDecimal amount = dailyRevenue != null && dailyRevenue.getTotalAmount() != null

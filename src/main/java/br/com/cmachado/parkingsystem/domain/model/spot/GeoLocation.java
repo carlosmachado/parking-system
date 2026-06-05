@@ -22,9 +22,13 @@ public class GeoLocation implements ValueObject<GeoLocation> {
     @Column(name = "lng", nullable = false)
     private double lng;
 
-    public GeoLocation(double lat, double lng) {
+    private GeoLocation(double lat, double lng) {
         this.lat = lat;
         this.lng = lng;
+    }
+
+    public static GeoLocation of(double lat, double lng) {
+        return new GeoLocation(lat, lng);
     }
 
     public double calculateDistance(GeoLocation other) {

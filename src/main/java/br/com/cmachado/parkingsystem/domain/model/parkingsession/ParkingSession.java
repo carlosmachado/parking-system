@@ -82,7 +82,7 @@ public class ParkingSession extends AggregateRootBase<ParkingSession> {
     private ParkingSession(LicensePlate licensePlate, LocalDateTime entryTime) {
         this.id = ParkingSessionId.generate();
         this.licensePlate = licensePlate;
-        this.period = new Period(entryTime);
+        this.period = Period.start(entryTime);
         this.status = ParkingSessionStatus.ENTERED;
         registerEvent(new VehicleEntered(this));
     }
@@ -118,7 +118,7 @@ public class ParkingSession extends AggregateRootBase<ParkingSession> {
         if (this.status == ParkingSessionStatus.EXITED) {
             throw new IllegalStateException("Session has already exited");
         }
-        this.period.setExitTime(exitTime);
+        this.period = this.period.end(exitTime);
         this.amountCharged = amount;
         this.status = ParkingSessionStatus.EXITED;
         registerEvent(new VehicleExited(this, this.sectorCode, exitTime.toLocalDate(), amount));

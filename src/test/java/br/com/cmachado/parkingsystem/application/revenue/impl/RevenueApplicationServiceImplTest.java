@@ -30,7 +30,7 @@ class RevenueApplicationServiceImplTest {
     @Test
     void returnsZeroWhenSectorHasNoRevenueForDate() {
         LocalDate date = LocalDate.parse("2025-01-01");
-        when(dailyRevenueRepository.findBySectorCodeAndDate(new SectorCode("A"), date))
+        when(dailyRevenueRepository.findBySectorCodeAndDate(SectorCode.of("A"), date))
                 .thenReturn(Optional.empty());
 
         RevenueResponse response = service().getRevenue(date, "A");
@@ -44,7 +44,7 @@ class RevenueApplicationServiceImplTest {
     void returnsRevenueForSectorAndDate() {
         LocalDate date = LocalDate.parse("2025-01-01");
         DailyRevenue revenue = revenue("A", date, "42.50");
-        when(dailyRevenueRepository.findBySectorCodeAndDate(new SectorCode("A"), date))
+        when(dailyRevenueRepository.findBySectorCodeAndDate(SectorCode.of("A"), date))
                 .thenReturn(Optional.of(revenue));
 
         RevenueResponse response = service().getRevenue(date, "A");
@@ -79,14 +79,14 @@ class RevenueApplicationServiceImplTest {
     @Test
     void convertsSectorParameterToValueObject() {
         LocalDate date = LocalDate.parse("2025-01-01");
-        when(dailyRevenueRepository.findBySectorCodeAndDate(new SectorCode("SEC-A"), date))
+        when(dailyRevenueRepository.findBySectorCodeAndDate(SectorCode.of("SEC-A"), date))
                 .thenReturn(Optional.empty());
 
         service().getRevenue(date, "SEC-A");
 
         ArgumentCaptor<SectorCode> sectorCaptor = ArgumentCaptor.forClass(SectorCode.class);
         verify(dailyRevenueRepository).findBySectorCodeAndDate(sectorCaptor.capture(), org.mockito.ArgumentMatchers.eq(date));
-        assertEquals(new SectorCode("SEC-A"), sectorCaptor.getValue());
+        assertEquals(SectorCode.of("SEC-A"), sectorCaptor.getValue());
     }
 
     private RevenueApplicationServiceImpl service() {
@@ -94,7 +94,7 @@ class RevenueApplicationServiceImplTest {
     }
 
     private DailyRevenue revenue(String sector, LocalDate date, String amount) {
-        DailyRevenue dailyRevenue = new DailyRevenue(new SectorCode(sector), date);
+        DailyRevenue dailyRevenue = new DailyRevenue(SectorCode.of(sector), date);
         dailyRevenue.addRevenue(Money.of(amount));
         return dailyRevenue;
     }
