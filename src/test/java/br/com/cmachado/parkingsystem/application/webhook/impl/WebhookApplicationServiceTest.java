@@ -62,8 +62,8 @@ class WebhookApplicationServiceTest {
         cleanAll();
         SectorCode code = new SectorCode("SEC-A");
         sectorRepository.save(new Sector(code, Money.of(10.0), 10));
-        spotRepository.save(new Spot(1L, code, new GeoLocation(10.0, 10.0)));
-        spotRepository.save(new Spot(2L, code, new GeoLocation(20.0, 20.0)));
+        spotRepository.save(Spot.register(1L, code, new GeoLocation(10.0, 10.0)));
+        spotRepository.save(Spot.register(2L, code, new GeoLocation(20.0, 20.0)));
     }
 
     @AfterEach

@@ -13,6 +13,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,13 +29,18 @@ import java.time.LocalDateTime;
  * back by the {@code GET /revenue} endpoint. The (sector, date) pair is unique.</p>
  */
 @Entity
-@Table(name = "daily_revenue")
+@Table(name = "daily_revenue",
+        uniqueConstraints = @UniqueConstraint(name = "uq_daily_revenue_sector_date", columnNames = {"sector_code", "date"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class DailyRevenue extends AggregateRootBase<DailyRevenue> {
 
     @EmbeddedId
     private DailyRevenueId id;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @Embedded
     @AttributeOverride(name = "code", column = @Column(name = "sector_code", nullable = false))

@@ -1,8 +1,8 @@
 package br.com.cmachado.parkingsystem.domain.model.spot;
 
 import br.com.cmachado.parkingsystem.domain.model.garage.SectorCode;
-import br.com.cmachado.parkingsystem.domain.model.spot.events.SpotCreated;
 import br.com.cmachado.parkingsystem.domain.model.spot.events.SpotOccupied;
+import br.com.cmachado.parkingsystem.domain.model.spot.events.SpotRegistered;
 import br.com.cmachado.parkingsystem.domain.model.spot.events.SpotReleased;
 import br.com.cmachado.parkingsystem.domain.shared.AggregateRootBase;
 import jakarta.persistence.AttributeOverride;
@@ -10,6 +10,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -20,13 +22,18 @@ import lombok.NoArgsConstructor;
  * {@link #occupy()} and {@link #release()}.
  */
 @jakarta.persistence.Entity
-@Table(name = "spot")
+@Table(name = "spot",
+        uniqueConstraints = @UniqueConstraint(name = "uq_spot_sector_location", columnNames = {"sector_code", "lat", "lng"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Spot extends AggregateRootBase<Spot> {
 
     @EmbeddedId
     private SpotId id;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @Column(name = "external_id")
     private Long externalId;
@@ -41,7 +48,7 @@ public class Spot extends AggregateRootBase<Spot> {
     @Column(name = "occupied", nullable = false)
     private boolean occupied;
 
-    public Spot(Long externalId, SectorCode sectorCode, GeoLocation location) {
+    private Spot(Long externalId, SectorCode sectorCode, GeoLocation location) {
         if (externalId == null) throw new IllegalArgumentException("ExternalId cannot be null");
         if (sectorCode == null) throw new IllegalArgumentException("SectorCode cannot be null");
         if (location == null) throw new IllegalArgumentException("Location cannot be null");
@@ -51,7 +58,11 @@ public class Spot extends AggregateRootBase<Spot> {
         this.sectorCode = sectorCode;
         this.location = location;
         this.occupied = false;
-        registerEvent(new SpotCreated(this));
+        registerEvent(new SpotRegistered(this));
+    }
+
+    public static Spot register(Long externalId, SectorCode sectorCode, GeoLocation location) {
+        return new Spot(externalId, sectorCode, location);
     }
 
     public void occupy() {

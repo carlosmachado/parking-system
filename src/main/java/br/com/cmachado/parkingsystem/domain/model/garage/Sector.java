@@ -8,6 +8,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,13 +20,18 @@ import lombok.NoArgsConstructor;
  * entrance gate group.
  */
 @jakarta.persistence.Entity
-@Table(name = "sector")
+@Table(name = "sector",
+        uniqueConstraints = @UniqueConstraint(name = "uq_sector_code", columnNames = "code"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Sector extends AggregateRootBase<Sector> {
 
     @EmbeddedId
     private SectorId id;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @Embedded
     private SectorCode code;

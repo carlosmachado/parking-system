@@ -66,7 +66,7 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
 
                 spotRepository.findByExternalId(spotData.getId())
                         .orElseGet(() -> {
-                            Spot spot = new Spot(spotData.getId(), code, location);
+                            Spot spot = Spot.register(spotData.getId(), code, location);
                             return spotRepository.save(spot);
                         });
             }

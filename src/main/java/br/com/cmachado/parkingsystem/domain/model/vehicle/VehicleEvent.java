@@ -17,6 +17,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,6 +39,10 @@ public class VehicleEvent extends AggregateRootBase<VehicleEvent> {
 
     @EmbeddedId
     private VehicleEventId id;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @Embedded
     private LicensePlate licensePlate;
