@@ -6,7 +6,6 @@ import br.com.cmachado.parkingsystem.domain.model.sector.OccupancyRate;
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
-import br.com.cmachado.parkingsystem.domain.model.sector.events.GarageAtCapacity;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
@@ -18,10 +17,12 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionS
 import br.com.cmachado.parkingsystem.domain.service.occupancy.OccupancyDomainService;
 import br.com.cmachado.parkingsystem.domain.service.pricing.PricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.PricingStrategyFactory;
+import br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,10 +36,8 @@ import java.util.stream.Collectors;
 /**
  * Orchestrates the vehicle lifecycle driven by simulator webhook events.
  *
- * <p>Webhook events are facts — the car already entered, parked, or exited before the
- * HTTP call arrives. This service records and adapts; it never rejects a valid event type.
- * If the garage is at capacity when an entry arrives, a {@link GarageAtCapacity} application
- * event is published for observability.</p>
+ * <p>ENTRY is rejected with {@link GarageFullException} (HTTP 409, code EST-001) when the
+ * garage is at 100% capacity. The vehicle must wait until a spot is freed in any sector.</p>
  */
 @Service
 public class WebhookApplicationServiceImpl implements WebhookApplicationService {
@@ -51,25 +50,26 @@ public class WebhookApplicationServiceImpl implements WebhookApplicationService 
     private final SectorRepository sectorRepository;
     private final OccupancyDomainService occupancyDomainService;
     private final PricingStrategyFactory pricingStrategyFactory;
-    private final ApplicationEventPublisher eventPublisher;
+    private final Counter garageFullCounter;
 
     public WebhookApplicationServiceImpl(ParkingSessionRepository sessionRepository,
                                          ParkingSpotRepository spotRepository,
                                          SectorRepository sectorRepository,
                                          OccupancyDomainService occupancyDomainService,
                                          PricingStrategyFactory pricingStrategyFactory,
-                                         ApplicationEventPublisher eventPublisher) {
+                                         MeterRegistry meterRegistry) {
         this.sessionRepository = sessionRepository;
         this.spotRepository = spotRepository;
         this.sectorRepository = sectorRepository;
         this.occupancyDomainService = occupancyDomainService;
         this.pricingStrategyFactory = pricingStrategyFactory;
-        this.eventPublisher = eventPublisher;
+        this.garageFullCounter = Counter.builder("garage.entry.rejected")
+                .description("Entry attempts rejected because the garage was at full capacity")
+                .register(meterRegistry);
     }
 
     /**
-     * Records a vehicle entry. Always succeeds — if the garage is at capacity a metric
-     * event is published but the entry is still stored.
+     * Records a vehicle entry. Throws {@link GarageFullException} if the garage is at capacity.
      */
     @Override
     @Transactional
@@ -80,8 +80,9 @@ public class WebhookApplicationServiceImpl implements WebhookApplicationService 
         int totalSpots = (int) spotRepository.count();
         int occupiedSpots = (int) spotRepository.countByOccupiedTrue();
         if (occupancyDomainService.isGarageFull(totalSpots, occupiedSpots)) {
-            logger.warn("Entry recorded while garage at capacity: plate={}", licensePlate);
-            eventPublisher.publishEvent(new GarageAtCapacity(licensePlate, entryTime));
+            garageFullCounter.increment();
+            logger.warn("Entry rejected — garage at capacity: plate={}", licensePlate);
+            throw new GarageFullException();
         }
 
         sessionRepository.save(ParkingSession.enter(licensePlate, entryTime));
@@ -168,7 +169,6 @@ public class WebhookApplicationServiceImpl implements WebhookApplicationService 
     }
 
     private ParkingSpot findSpotForParking(GeoLocation currentLoc, LicensePlate licensePlate) {
-        // Filter to sectors open right now
         LocalTime now = LocalTime.now();
         Set<SectorCode> openSectorCodes = sectorRepository.findAll().stream()
                 .filter(s -> s.isOpen(now))
@@ -184,7 +184,6 @@ public class WebhookApplicationServiceImpl implements WebhookApplicationService 
                 : spotRepository.findByOccupiedFalseAndSectorCodeIn(openSectorCodes);
 
         if (candidates.isEmpty()) {
-            // Fall back to any spot in open sectors (accept transient overlap)
             candidates = openSectorCodes.isEmpty()
                     ? spotRepository.findAll()
                     : spotRepository.findAll().stream()

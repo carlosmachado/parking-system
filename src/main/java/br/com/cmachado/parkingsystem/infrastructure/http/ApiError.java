@@ -11,6 +11,7 @@ public class ApiError {
     private LocalDateTime timestamp;
     private int status;
     private String error;
+    private String code;
     private String message;
     private String path;
 }

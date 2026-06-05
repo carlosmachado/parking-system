@@ -8,7 +8,6 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionS
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
-import br.com.cmachado.parkingsystem.domain.model.sector.events.GarageAtCapacity;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotId;
@@ -19,14 +18,14 @@ import br.com.cmachado.parkingsystem.domain.service.pricing.PricingStrategyFacto
 import br.com.cmachado.parkingsystem.domain.service.pricing.StandardPricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.Surcharge10PricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.Surcharge25PricingStrategy;
+import br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -37,6 +36,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -56,9 +56,6 @@ class WebhookApplicationServiceImplTest {
     @Mock
     private SectorRepository sectorRepository;
 
-    @Mock
-    private ApplicationEventPublisher eventPublisher;
-
     private WebhookApplicationServiceImpl service;
 
     @BeforeEach
@@ -74,35 +71,27 @@ class WebhookApplicationServiceImplTest {
                 sectorRepository,
                 new OccupancyDomainService(),
                 pricingStrategyFactory,
-                eventPublisher);
+                new SimpleMeterRegistry());
     }
 
     @Test
-    void fullGarageEntryPublishesCapacityEventAndStoresSession() {
-        WebhookEventRequest request = entry("FULL123", LocalDateTime.parse("2025-01-01T10:00:00"));
+    void entryWhenGarageFullThrowsGarageFullException() {
         when(spotRepository.count()).thenReturn(2L);
         when(spotRepository.countByOccupiedTrue()).thenReturn(2L);
 
-        service.processEntry(request);
+        assertThrows(GarageFullException.class,
+                () -> service.processEntry(entry("FULL123", LocalDateTime.parse("2025-01-01T10:00:00"))));
 
-        ArgumentCaptor<GarageAtCapacity> eventCaptor = ArgumentCaptor.forClass(GarageAtCapacity.class);
-        ArgumentCaptor<ParkingSession> sessionCaptor = ArgumentCaptor.forClass(ParkingSession.class);
-        verify(eventPublisher).publishEvent(eventCaptor.capture());
-        verify(sessionRepository).save(sessionCaptor.capture());
-
-        assertEquals(LicensePlate.of("FULL123"), eventCaptor.getValue().getLicensePlate());
-        assertEquals(LocalDateTime.parse("2025-01-01T10:00:00"), eventCaptor.getValue().getOccurredAt());
-        assertEquals(ParkingSessionStatus.ENTERED, sessionCaptor.getValue().getStatus());
+        verify(sessionRepository, never()).save(any());
     }
 
     @Test
-    void entryWhenGarageHasCapacityDoesNotPublishCapacityEvent() {
+    void entryWhenGarageHasCapacityStoresSession() {
         when(spotRepository.count()).thenReturn(2L);
         when(spotRepository.countByOccupiedTrue()).thenReturn(1L);
 
         service.processEntry(entry("OPEN123", LocalDateTime.parse("2025-01-01T10:00:00")));
 
-        verify(eventPublisher, never()).publishEvent(any());
         verify(sessionRepository).save(any(ParkingSession.class));
     }
 

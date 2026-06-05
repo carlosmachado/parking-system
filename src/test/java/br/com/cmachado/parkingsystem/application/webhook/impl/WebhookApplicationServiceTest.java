@@ -28,6 +28,7 @@ import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -108,19 +109,23 @@ class WebhookApplicationServiceTest {
     }
 
     @Test
-    void testEntryRecordedWhenGarageFullEmitsMetric() {
+    void testEntryRejectedWhenGarageFull() {
         // Fill both spots so the garage reaches 100% occupancy.
         parkVehicle("AAA1111");
         parkVehicle("BBB2222");
 
-        // Entry while full must succeed (returns 200), not throw.
+        long countBefore = sessionRepository.count();
+
         WebhookEventRequest entryReq = new WebhookEventRequest();
         entryReq.setLicensePlate("CCC3333");
         entryReq.setEventType("ENTRY");
         entryReq.setEntryTime(LocalDateTime.now().toString());
-        webhookService.processEntry(entryReq);
 
-        assertTrue(sessionRepository.count() >= 3, "entry while full must be stored");
+        assertThrows(
+                br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException.class,
+                () -> webhookService.processEntry(entryReq));
+
+        assertEquals(countBefore, sessionRepository.count(), "rejected entry must not be stored");
     }
 
     private void parkVehicle(String plate) {
