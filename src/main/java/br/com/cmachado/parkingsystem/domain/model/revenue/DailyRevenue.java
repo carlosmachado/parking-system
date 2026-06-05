@@ -1,7 +1,7 @@
 package br.com.cmachado.parkingsystem.domain.model.revenue;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.model.garage.SectorCode;
+import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.revenue.events.DailyRevenueCreated;
 import br.com.cmachado.parkingsystem.domain.model.revenue.events.DailyRevenueUpdated;
 import br.com.cmachado.parkingsystem.domain.shared.AggregateRootBase;
@@ -13,6 +13,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
+import jakarta.validation.constraints.NotNull;
+
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,13 +45,16 @@ public class DailyRevenue extends AggregateRootBase<DailyRevenue> {
     @Column(name = "version", nullable = false)
     private Long version;
 
+    @NotNull(message = "Sector code is required")
     @Embedded
     @AttributeOverride(name = "code", column = @Column(name = "sector_code", nullable = false))
     private SectorCode sectorCode;
 
+    @NotNull(message = "Date is required")
     @Column(name = "date", nullable = false)
     private LocalDate date;
 
+    @NotNull(message = "Total amount is required")
     @Embedded
     @AttributeOverride(name = "amount", column = @Column(name = "total_amount", nullable = false))
     private Money totalAmount;
@@ -62,8 +68,8 @@ public class DailyRevenue extends AggregateRootBase<DailyRevenue> {
     private LocalDateTime updatedAt;
 
     public DailyRevenue(SectorCode sectorCode, LocalDate date) {
-        if (sectorCode == null) throw new IllegalArgumentException("SectorCode cannot be null");
-        if (date == null) throw new IllegalArgumentException("Date cannot be null");
+        Objects.requireNonNull(sectorCode, "SectorCode cannot be null");
+        Objects.requireNonNull(date, "Date cannot be null");
 
         this.id = DailyRevenueId.generate();
         this.sectorCode = sectorCode;

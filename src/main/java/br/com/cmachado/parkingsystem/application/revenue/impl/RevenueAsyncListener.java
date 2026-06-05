@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.application.revenue.impl;
 
-import br.com.cmachado.parkingsystem.domain.model.vehicle.events.VehicleExited;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleExited;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.scheduling.annotation.Async;

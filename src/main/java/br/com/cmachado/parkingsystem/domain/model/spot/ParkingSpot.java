@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.domain.model.spot;
 
-import br.com.cmachado.parkingsystem.domain.model.garage.SectorCode;
+import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.spot.events.ParkingSpotRegistered;
 import br.com.cmachado.parkingsystem.domain.model.spot.events.SpotOccupied;
 import br.com.cmachado.parkingsystem.domain.model.spot.events.SpotReleased;
@@ -13,6 +13,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
+import jakarta.validation.constraints.NotNull;
+
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -39,6 +42,7 @@ public class ParkingSpot extends AggregateRootBase<ParkingSpot> {
     @Column(name = "external_id")
     private Long externalId;
 
+    @NotNull(message = "Sector code is required")
     @Embedded
     @AttributeOverride(name = "code", column = @Column(name = "sector_code", nullable = false))
     private SectorCode sectorCode;
@@ -50,9 +54,9 @@ public class ParkingSpot extends AggregateRootBase<ParkingSpot> {
     private boolean occupied;
 
     private ParkingSpot(Long externalId, SectorCode sectorCode, GeoLocation location) {
-        if (externalId == null) throw new IllegalArgumentException("ExternalId cannot be null");
-        if (sectorCode == null) throw new IllegalArgumentException("SectorCode cannot be null");
-        if (location == null) throw new IllegalArgumentException("Location cannot be null");
+        Objects.requireNonNull(externalId, "ExternalId cannot be null");
+        Objects.requireNonNull(sectorCode, "SectorCode cannot be null");
+        Objects.requireNonNull(location, "Location cannot be null");
 
         this.id = ParkingSpotId.generate();
         this.externalId = externalId;

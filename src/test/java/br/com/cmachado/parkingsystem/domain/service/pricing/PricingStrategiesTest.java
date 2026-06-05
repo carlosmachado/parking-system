@@ -1,8 +1,8 @@
 package br.com.cmachado.parkingsystem.domain.service.pricing;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.model.garage.OccupancyRate;
-import br.com.cmachado.parkingsystem.domain.model.vehicle.Period;
+import br.com.cmachado.parkingsystem.domain.model.sector.OccupancyRate;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.Period;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

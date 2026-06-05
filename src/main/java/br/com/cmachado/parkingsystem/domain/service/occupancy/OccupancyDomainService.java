@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.domain.service.occupancy;
 
-import br.com.cmachado.parkingsystem.domain.model.garage.OccupancyRate;
+import br.com.cmachado.parkingsystem.domain.model.sector.OccupancyRate;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.shared.DomainService;

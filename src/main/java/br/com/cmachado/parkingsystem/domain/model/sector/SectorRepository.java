@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.model.garage;
+package br.com.cmachado.parkingsystem.domain.model.sector;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

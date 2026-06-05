@@ -2,9 +2,9 @@ package br.com.cmachado.parkingsystem.application.garage.impl;
 
 import br.com.cmachado.parkingsystem.application.garage.GarageInitializerService;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.model.garage.Sector;
-import br.com.cmachado.parkingsystem.domain.model.garage.SectorCode;
-import br.com.cmachado.parkingsystem.domain.model.garage.SectorRepository;
+import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
+import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
+import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;

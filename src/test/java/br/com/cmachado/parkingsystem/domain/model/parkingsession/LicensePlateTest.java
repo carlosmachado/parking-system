@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.model.vehicle;
+package br.com.cmachado.parkingsystem.domain.model.parkingsession;
 
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +20,7 @@ class LicensePlateTest {
 
     @Test
     void rejectsNullPlate() {
-        assertThrows(IllegalArgumentException.class, () -> new LicensePlate(null));
+        assertThrows(NullPointerException.class, () -> new LicensePlate(null));
     }
 
     @Test

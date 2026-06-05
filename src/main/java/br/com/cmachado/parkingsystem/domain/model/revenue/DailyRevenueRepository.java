@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.domain.model.revenue;
 
-import br.com.cmachado.parkingsystem.domain.model.garage.SectorCode;
+import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;

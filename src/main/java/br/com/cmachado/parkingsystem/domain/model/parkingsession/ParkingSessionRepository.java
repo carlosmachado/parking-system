@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.model.vehicle;
+package br.com.cmachado.parkingsystem.domain.model.parkingsession;
 
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotId;
 import org.springframework.data.jpa.repository.JpaRepository;

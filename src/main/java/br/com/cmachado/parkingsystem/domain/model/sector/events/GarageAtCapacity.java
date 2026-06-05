@@ -1,6 +1,6 @@
-package br.com.cmachado.parkingsystem.domain.model.garage.events;
+package br.com.cmachado.parkingsystem.domain.model.sector.events;
 
-import br.com.cmachado.parkingsystem.domain.model.vehicle.LicensePlate;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import lombok.Getter;
 
 import java.time.LocalDateTime;

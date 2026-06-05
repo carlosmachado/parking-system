@@ -1,11 +1,11 @@
-package br.com.cmachado.parkingsystem.domain.model.vehicle;
+package br.com.cmachado.parkingsystem.domain.model.parkingsession;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.model.garage.SectorCode;
+import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotId;
-import br.com.cmachado.parkingsystem.domain.model.vehicle.events.VehicleEntered;
-import br.com.cmachado.parkingsystem.domain.model.vehicle.events.VehicleExited;
-import br.com.cmachado.parkingsystem.domain.model.vehicle.events.VehicleParked;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleEntered;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleExited;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleParked;
 import br.com.cmachado.parkingsystem.domain.shared.AggregateRootBase;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
@@ -16,6 +16,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -65,6 +66,7 @@ public class ParkingSession extends AggregateRootBase<ParkingSession> {
     @AttributeOverride(name = "amount", column = @Column(name = "amount_charged"))
     private Money amountCharged;
 
+    @NotNull(message = "Status is required")
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private ParkingSessionStatus status;

@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.application.garage.impl;
 
-import br.com.cmachado.parkingsystem.domain.model.garage.events.GarageAtCapacity;
+import br.com.cmachado.parkingsystem.domain.model.sector.events.GarageAtCapacity;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.context.event.EventListener;

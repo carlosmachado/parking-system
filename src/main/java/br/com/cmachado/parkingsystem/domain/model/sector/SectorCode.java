@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.model.garage;
+package br.com.cmachado.parkingsystem.domain.model.sector;
 
 import br.com.cmachado.parkingsystem.domain.shared.ValueObject;
 import jakarta.persistence.Column;
@@ -6,6 +6,8 @@ import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.Objects;
 
 /**
  * Value object identifying a sector by its code (e.g. "A"), normalized to upper case.
@@ -19,8 +21,9 @@ public class SectorCode implements ValueObject<SectorCode> {
     private String code;
 
     public SectorCode(String code) {
-        if (code == null || code.trim().isEmpty()) {
-            throw new IllegalArgumentException("Sector code cannot be null or empty");
+        Objects.requireNonNull(code, "Sector code cannot be null");
+        if (code.trim().isEmpty()) {
+            throw new IllegalArgumentException("Sector code cannot be blank");
         }
         this.code = code.trim().toUpperCase();
     }

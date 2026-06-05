@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.model.vehicle;
+package br.com.cmachado.parkingsystem.domain.model.parkingsession;
 
 import br.com.cmachado.parkingsystem.domain.shared.ValueObject;
 import jakarta.persistence.Column;
@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * Value object for a parking interval (entry to exit). Exposes the stay duration in
@@ -26,16 +27,11 @@ public class Period implements ValueObject<Period> {
     private LocalDateTime exitTime;
 
     public Period(LocalDateTime entryTime) {
-        if (entryTime == null) {
-            throw new IllegalArgumentException("Entry time cannot be null");
-        }
-        this.entryTime = entryTime;
+        this.entryTime = Objects.requireNonNull(entryTime, "Entry time cannot be null");
     }
 
     public void setExitTime(LocalDateTime exitTime) {
-        if (exitTime == null) {
-            throw new IllegalArgumentException("Exit time cannot be null");
-        }
+        Objects.requireNonNull(exitTime, "Exit time cannot be null");
         if (exitTime.isBefore(entryTime)) {
             throw new IllegalArgumentException("Exit time cannot be before entry time");
         }

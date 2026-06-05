@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.model.vehicle;
+package br.com.cmachado.parkingsystem.domain.model.parkingsession;
 
 import br.com.cmachado.parkingsystem.domain.shared.ValueObject;
 import jakarta.persistence.Column;
@@ -6,6 +6,8 @@ import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.Objects;
 
 /**
  * Value object for a vehicle's license plate. Normalizes input to upper-case alphanumeric
@@ -20,8 +22,9 @@ public class LicensePlate implements ValueObject<LicensePlate> {
     private String plate;
 
     public LicensePlate(String plate) {
-        if (plate == null || plate.trim().isEmpty()) {
-            throw new IllegalArgumentException("License plate cannot be null or empty");
+        Objects.requireNonNull(plate, "License plate cannot be null");
+        if (plate.trim().isEmpty()) {
+            throw new IllegalArgumentException("License plate cannot be blank");
         }
         this.plate = plate.trim().toUpperCase().replaceAll("[^A-Z0-9]", "");
     }

@@ -1,7 +1,7 @@
 package br.com.cmachado.parkingsystem.domain.service.pricing;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.model.vehicle.Period;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.Period;
 
 /**
  * Shared fee calculation: the first 30 minutes are free; beyond that the stay is billed

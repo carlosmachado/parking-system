@@ -1,6 +1,6 @@
-package br.com.cmachado.parkingsystem.domain.model.garage.events;
+package br.com.cmachado.parkingsystem.domain.model.sector.events;
 
-import br.com.cmachado.parkingsystem.domain.model.garage.Sector;
+import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.shared.DomainEvent;
 import lombok.Getter;
 

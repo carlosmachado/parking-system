@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.model.garage;
+package br.com.cmachado.parkingsystem.domain.model.sector;
 
 import br.com.cmachado.parkingsystem.domain.shared.ValueObject;
 import jakarta.persistence.Embeddable;
@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * Value object for the garage occupancy fraction (0.0–1.0) captured at a point in time.
@@ -24,11 +25,8 @@ public class OccupancyRate implements ValueObject<OccupancyRate> {
         if (rate < 0.0 || rate > 1.0) {
             throw new IllegalArgumentException("Occupancy rate must be between 0.0 and 1.0");
         }
-        if (timestamp == null) {
-            throw new IllegalArgumentException("Timestamp cannot be null");
-        }
         this.rate = rate;
-        this.timestamp = timestamp;
+        this.timestamp = Objects.requireNonNull(timestamp, "Timestamp cannot be null");
     }
 
     @Override

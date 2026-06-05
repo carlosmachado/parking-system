@@ -1,7 +1,7 @@
 package br.com.cmachado.parkingsystem.application.revenue.impl;
 
 import br.com.cmachado.parkingsystem.application.revenue.RevenueApplicationService;
-import br.com.cmachado.parkingsystem.domain.model.garage.SectorCode;
+import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenue;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenueRepository;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.revenue.RevenueResponse;

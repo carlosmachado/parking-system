@@ -1,7 +1,7 @@
-package br.com.cmachado.parkingsystem.domain.model.garage;
+package br.com.cmachado.parkingsystem.domain.model.sector;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.model.garage.events.SectorCreated;
+import br.com.cmachado.parkingsystem.domain.model.sector.events.SectorCreated;
 import br.com.cmachado.parkingsystem.domain.shared.AggregateRootBase;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
@@ -10,6 +10,10 @@ import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,27 +42,35 @@ public class Sector extends AggregateRootBase<Sector> {
     @Embedded
     private SectorCode code;
 
+    @NotNull(message = "Base price is required")
     @Embedded
     @AttributeOverride(name = "amount", column = @Column(name = "base_price", nullable = false))
     private Money basePrice;
 
+    @NotNull(message = "Max capacity is required")
+    @Positive(message = "Max capacity must be positive")
     @Column(name = "max_capacity", nullable = false)
     private Integer maxCapacity;
 
+    @NotNull(message = "Open hour is required")
     @Column(name = "open_hour", nullable = false)
     private LocalTime openHour;
 
+    @NotNull(message = "Close hour is required")
     @Column(name = "close_hour", nullable = false)
     private LocalTime closeHour;
 
+    @NotNull(message = "Duration limit is required")
+    @Positive(message = "Duration limit must be positive")
     @Column(name = "duration_limit_minutes", nullable = false)
     private Integer durationLimitMinutes;
 
     public Sector(SectorCode code, Money basePrice, Integer maxCapacity,
                   LocalTime openHour, LocalTime closeHour, Integer durationLimitMinutes) {
-        if (code == null) throw new IllegalArgumentException("SectorCode cannot be null");
-        if (basePrice == null) throw new IllegalArgumentException("BasePrice cannot be null");
-        if (maxCapacity == null || maxCapacity < 1) throw new IllegalArgumentException("MaxCapacity must be at least 1");
+        Objects.requireNonNull(code, "SectorCode cannot be null");
+        Objects.requireNonNull(basePrice, "BasePrice cannot be null");
+        Objects.requireNonNull(maxCapacity, "MaxCapacity cannot be null");
+        if (maxCapacity < 1) throw new IllegalArgumentException("MaxCapacity must be at least 1");
 
         this.id = SectorId.generate();
         this.code = code;
