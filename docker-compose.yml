@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   mysql:
     image: mysql:8.0
@@ -6,10 +7,52 @@ services:
     environment:
       MYSQL_DATABASE: parking_db
       MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysql", "-h", "localhost", "-u", "root", "-proot", "parking_db", "-e", "SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - parking-net
+
+  # The simulator binary hardcodes http://localhost:3003/webhook as the delivery URL.
+  # Sharing the app's network namespace makes localhost:3003 resolve to our app.
+  garage-sim:
+    image: cfontes0estapar/garage-sim:1.0.0
+    container_name: garage-sim
+    ports:
+      - "3000:3000"
+      - "3003:3003"
+    networks:
+      - parking-net
+
+  app:
+    build: .
+    container_name: parking_app
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/parking_db?useSSL=false&serverTimezone=America/Sao_Paulo
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_FLYWAY_URL: jdbc:mysql://mysql:3306/parking_db
+      SPRING_FLYWAY_USER: root
+      SPRING_FLYWAY_PASSWORD: root
+      # Sim is on the same localhost (shared namespace), app on :3003
+      SIMULATOR_URL: http://localhost:3000
+      WEBHOOK_HOST: localhost
+    # Share the simulator's network namespace so localhost:3003 is visible to the sim
+    network_mode: "service:garage-sim"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      garage-sim:
+        condition: service_started
+
+networks:
+  parking-net:
+    driver: bridge
 
 volumes:
   mysql_data:
