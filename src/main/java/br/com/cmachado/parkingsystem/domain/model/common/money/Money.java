@@ -115,4 +115,8 @@ public class Money implements ValueObject<Money> {
     public String toString() {
         return getMonetaryAmount().toString();
     }
+
+    public boolean isZero() {
+        return amount.compareTo(BigDecimal.ZERO) == 0;
+    }
 }

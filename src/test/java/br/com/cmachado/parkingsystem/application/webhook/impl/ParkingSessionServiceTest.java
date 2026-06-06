@@ -105,9 +105,9 @@ class ParkingSessionServiceTest {
         webhookService.handle(exitReq);
 
         // Revenue is updated asynchronously after the exit transaction commits.
-        // Stayed 2h, base price 10, occupancy 1/2 (50%) -> +10% surcharge: 20 * 1.10 = 22.00
+        // Stayed 2h, base price 10. Spot released before charge calc → occupancy 0/2 = 0% → 10% discount: 20 * 0.90 = 18.00
         BigDecimal amount = awaitRevenue("SEC-A");
-        assertEquals(new BigDecimal("22.00"), amount);
+        assertEquals(new BigDecimal("18.00"), amount);
     }
 
     @Test

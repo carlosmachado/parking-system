@@ -33,7 +33,9 @@ public class DailyRevenueAsyncListener {
 
     private static final Logger logger = LoggerFactory.getLogger(DailyRevenueAsyncListener.class);
 
-    /** Attempts for the cold-start insert race on a sector's first exit of the day. */
+    /**
+     * Attempts for the cold-start insert race on a sector's first exit of the day.
+     */
     private static final int MAX_ATTEMPTS = 5;
 
     private final DailyRevenueUpdater revenueUpdater;
@@ -54,13 +56,20 @@ public class DailyRevenueAsyncListener {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleVehicleExited(VehicleExited event) {
-        if (event.getAmountCharged() == null || event.getAmountCharged().getAmount().signum() == 0) {
+        var session = event.getSession();
+        if (session.hasNoCharge()) {
             return;
         }
+
+        var sectorCode = session.getSectorCode();
+        var exitDate = session.getPeriod().getExitTime().toLocalDate();
+        var amountCharged = session.getAmountCharged();
+
         try {
             for (int attempt = 1; ; attempt++) {
                 try {
-                    revenueUpdater.addRevenue(event.getSectorCode(), event.getExitDate(), event.getAmountCharged());
+
+                    revenueUpdater.addRevenue(sectorCode, exitDate, amountCharged);
                     return;
                 } catch (DataIntegrityViolationException | ObjectOptimisticLockingFailureException ex) {
                     if (attempt >= MAX_ATTEMPTS) {
@@ -73,11 +82,11 @@ public class DailyRevenueAsyncListener {
             Thread.currentThread().interrupt();
             revenueFailedCounter.increment();
             logger.error("Revenue update interrupted — increment lost: sector={} date={} amount={}",
-                    event.getSectorCode(), event.getExitDate(), event.getAmountCharged(), ex);
+                    sectorCode, exitDate, amountCharged, ex);
         } catch (Exception ex) {
             revenueFailedCounter.increment();
             logger.error("Revenue update failed after {} attempts — increment lost: sector={} date={} amount={}",
-                    MAX_ATTEMPTS, event.getSectorCode(), event.getExitDate(), event.getAmountCharged(), ex);
+                    MAX_ATTEMPTS, sectorCode, exitDate, amountCharged, ex);
         }
     }
 }

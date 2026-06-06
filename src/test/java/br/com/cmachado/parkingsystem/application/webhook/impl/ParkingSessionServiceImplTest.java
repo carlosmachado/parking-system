@@ -1,5 +1,6 @@
 package br.com.cmachado.parkingsystem.application.webhook.impl;
 
+import br.com.cmachado.parkingsystem.application.webhook.ChargeCalculator;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
@@ -11,12 +12,6 @@ import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
-import br.com.cmachado.parkingsystem.domain.service.occupancy.OccupancyDomainService;
-import br.com.cmachado.parkingsystem.domain.service.pricing.DiscountPricingStrategy;
-import br.com.cmachado.parkingsystem.domain.service.pricing.PricingStrategyFactory;
-import br.com.cmachado.parkingsystem.domain.service.pricing.StandardPricingStrategy;
-import br.com.cmachado.parkingsystem.domain.service.pricing.Surcharge10PricingStrategy;
-import br.com.cmachado.parkingsystem.domain.service.pricing.Surcharge25PricingStrategy;
 import br.com.cmachado.parkingsystem.infrastructure.http.BadRequestException;
 import br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException;
 import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSessionNotFoundException;
@@ -41,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,20 +47,15 @@ class ParkingSessionServiceImplTest {
     @Mock private ParkingSessionRepository sessionRepository;
     @Mock private ParkingSpotRepository spotRepository;
     @Mock private SectorRepository sectorRepository;
+    @Mock private ChargeCalculator chargeCalculator;
 
     private ParkingSessionServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        PricingStrategyFactory pricingStrategyFactory = new PricingStrategyFactory(
-                new DiscountPricingStrategy(),
-                new StandardPricingStrategy(),
-                new Surcharge10PricingStrategy(),
-                new Surcharge25PricingStrategy());
         service = new ParkingSessionServiceImpl(
                 sessionRepository, spotRepository, sectorRepository,
-                new OccupancyDomainService(), pricingStrategyFactory,
-                new SimpleMeterRegistry());
+                chargeCalculator, new SimpleMeterRegistry());
     }
 
     // ── validation ───────────────────────────────────────────────────────────
@@ -191,6 +182,7 @@ class ParkingSessionServiceImplTest {
         when(sessionRepository.findByLicensePlateAndStatusIn(
                 LicensePlate.of("EXIT001"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
+        when(chargeCalculator.calculate(eq(session), any())).thenReturn(Money.ZERO);
 
         service.handle(exit("EXIT001", LocalDateTime.parse("2025-01-01T11:00:00")));
 
@@ -214,20 +206,20 @@ class ParkingSessionServiceImplTest {
     }
 
     @Test
-    void exitWithMissingSectorChargesZeroAndReleasesSpot() {
+    void exitReleasesSpotAndSavesSession() {
         ParkingSpot theSpot = spot(1L, "A", 10.0, 10.0);
         ParkingSession session = parkedSession("EXIT003", theSpot);
         when(sessionRepository.findByLicensePlateAndStatusIn(
                 LicensePlate.of("EXIT003"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
         when(spotRepository.findById(theSpot.getId())).thenReturn(Optional.of(theSpot));
-        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.empty());
+        when(chargeCalculator.calculate(eq(session), any())).thenReturn(Money.of("15.00"));
 
         service.handle(exit("EXIT003", LocalDateTime.parse("2025-01-01T12:00:00")));
 
         assertEquals(ParkingSessionStatus.EXITED, session.getStatus());
-        assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount());
         assertFalse(theSpot.isOccupied());
+        assertEquals(new BigDecimal("15.00"), session.getAmountCharged().getAmount());
         verify(spotRepository).save(theSpot);
         verify(sessionRepository).save(session);
     }

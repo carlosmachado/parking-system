@@ -123,7 +123,7 @@ public class ParkingSession extends AggregateRootBase<ParkingSession> {
         this.period = this.period.end(exitTime);
         this.amountCharged = amount;
         this.status = ParkingSessionStatus.EXITED;
-        registerEvent(new VehicleExited(this, this.sectorCode, exitTime.toLocalDate(), amount));
+        registerEvent(new VehicleExited(this));
     }
 
     @Override
@@ -142,5 +142,13 @@ public class ParkingSession extends AggregateRootBase<ParkingSession> {
     @Override
     public int hashCode() {
         return id != null ? id.hashCode() : 0;
+    }
+
+    public boolean isParked() {
+        return status == ParkingSessionStatus.PARKED && spotId != null;
+    }
+
+    public boolean hasNoCharge() {
+        return this.amountCharged == null || this.amountCharged.isZero();
     }
 }

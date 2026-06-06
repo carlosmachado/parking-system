@@ -1,23 +1,19 @@
 package br.com.cmachado.parkingsystem.application.webhook.impl;
 
+import br.com.cmachado.parkingsystem.application.webhook.ChargeCalculator;
 import br.com.cmachado.parkingsystem.application.webhook.ParkingSessionService;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.model.sector.OccupancyRate;
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
-import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
+import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotId;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
-import br.com.cmachado.parkingsystem.domain.model.parkingsession.Period;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
-import br.com.cmachado.parkingsystem.domain.service.occupancy.OccupancyDomainService;
-import br.com.cmachado.parkingsystem.domain.service.pricing.PricingStrategy;
-import br.com.cmachado.parkingsystem.domain.service.pricing.PricingStrategyFactory;
 import br.com.cmachado.parkingsystem.infrastructure.http.BadRequestException;
 import br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException;
 import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSessionNotFoundException;
@@ -33,18 +29,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Orchestrates the vehicle lifecycle driven by simulator webhook events.
- *
- * <p>Validates and routes each event, then delegates to the matching use-case method.
- * ENTRY is rejected with {@link GarageFullException} (HTTP 409, code EST-001) when the
- * garage is at 100% capacity.</p>
- */
 @Service
 public class ParkingSessionServiceImpl implements ParkingSessionService {
 
@@ -54,21 +42,18 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     private final ParkingSessionRepository sessionRepository;
     private final ParkingSpotRepository parkingSpotRepository;
     private final SectorRepository sectorRepository;
-    private final OccupancyDomainService occupancyDomainService;
-    private final PricingStrategyFactory pricingStrategyFactory;
+    private final ChargeCalculator chargeCalculator;
     private final Counter garageFullCounter;
 
     public ParkingSessionServiceImpl(ParkingSessionRepository sessionRepository,
                                      ParkingSpotRepository parkingSpotRepository,
                                      SectorRepository sectorRepository,
-                                     OccupancyDomainService occupancyDomainService,
-                                     PricingStrategyFactory pricingStrategyFactory,
+                                     ChargeCalculator chargeCalculator,
                                      MeterRegistry meterRegistry) {
         this.sessionRepository = sessionRepository;
         this.parkingSpotRepository = parkingSpotRepository;
         this.sectorRepository = sectorRepository;
-        this.occupancyDomainService = occupancyDomainService;
-        this.pricingStrategyFactory = pricingStrategyFactory;
+        this.chargeCalculator = chargeCalculator;
         this.garageFullCounter = Counter.builder("garage.entry.rejected")
                 .description("Entry attempts rejected because the garage was at full capacity")
                 .register(meterRegistry);
@@ -148,33 +133,16 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                         licensePlate, List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED))
                 .orElseThrow(() -> new ParkingSessionNotFoundException("No active session found for plate " + licensePlate));
 
-        ParkingSpotId spotId = session.getSpotId();
-        Money amountCharged = calculateCharge(session, exitTime);
-        session.exit(exitTime, amountCharged);
-        sessionRepository.save(session);
-
-        if (spotId != null) {
+        if (session.isParked()) {
+            ParkingSpotId spotId = session.getSpotId();
             ParkingSpot spot = parkingSpotRepository.findById(spotId)
                     .orElseThrow(() -> new ParkingSpotNotFoundException("No spot found for id " + spotId));
             spot.release();
             parkingSpotRepository.save(spot);
         }
-    }
 
-    private Money calculateCharge(ParkingSession session, LocalDateTime exitTime) {
-        SectorCode sectorCode = session.getSectorCode();
-        if (sectorCode == null) {
-            return Money.ZERO;
-        }
-        Sector sector = sectorRepository.findByCode(sectorCode).orElse(null);
-        if (sector == null) {
-            return Money.ZERO;
-        }
-        int totalSpots = (int) parkingSpotRepository.count();
-        int occupiedSpots = (int) parkingSpotRepository.countByOccupiedTrue();
-        OccupancyRate occupancyRate = occupancyDomainService.calculateOccupancyRate(totalSpots, occupiedSpots);
-        PricingStrategy pricingStrategy = pricingStrategyFactory.getStrategy(occupancyRate);
-        Period tempPeriod = session.getPeriod().end(exitTime);
-        return pricingStrategy.calculate(tempPeriod, sector.getBasePrice());
+        Money amountCharged = chargeCalculator.calculate(session, exitTime);
+        session.exit(exitTime, amountCharged);
+        sessionRepository.save(session);
     }
 }
