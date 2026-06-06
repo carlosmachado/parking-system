@@ -3,7 +3,6 @@ package br.com.cmachado.parkingsystem.domain.model.spot;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.CantParkSessionException;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
-import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSpotOccupiedException;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.spot.events.ParkingSpotRegistered;
 import br.com.cmachado.parkingsystem.domain.model.spot.events.SpotOccupied;
@@ -80,7 +79,7 @@ public class ParkingSpot extends AggregateRootBase<ParkingSpot> {
     }
 
     public void park(ParkingSession session) {
-        validateSessionStatus(session);
+        throwIfNotEnteredStatus(session);
         session.parkOn(this);
         this.occupied = true;
         registerEvent(new SpotOccupied(this));
@@ -109,8 +108,8 @@ public class ParkingSpot extends AggregateRootBase<ParkingSpot> {
         return id != null ? id.hashCode() : 0;
     }
 
-    private void validateSessionStatus(ParkingSession session) {
+    private void throwIfNotEnteredStatus(ParkingSession session) {
         if (session.getStatus() != ParkingSessionStatus.ENTERED)
-            throw new CantParkSessionException("Session must be in ENTERED status to park");
+            throw new CantParkSessionException("ParkingSession must be in ENTERED status to park");
     }
 }

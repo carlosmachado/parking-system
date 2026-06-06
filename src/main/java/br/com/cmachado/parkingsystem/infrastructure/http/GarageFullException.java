@@ -7,6 +7,6 @@ public class GarageFullException extends RuntimeException {
     public static final String CODE = "EST-001";
 
     public GarageFullException(LicensePlate licensePlate) {
-        super("Parking is full");
+        super("Parking is full. Just blocked: " + licensePlate);
     }
 }
