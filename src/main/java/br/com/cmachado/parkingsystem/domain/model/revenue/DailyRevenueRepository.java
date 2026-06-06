@@ -12,7 +12,9 @@ import java.util.Optional;
 
 @Repository
 public interface DailyRevenueRepository extends JpaRepository<DailyRevenue, DailyRevenueId> {
+
     Optional<DailyRevenue> findBySectorCodeAndDate(SectorCode sectorCode, LocalDate date);
+
     List<DailyRevenue> findByDate(LocalDate date);
 
     /**

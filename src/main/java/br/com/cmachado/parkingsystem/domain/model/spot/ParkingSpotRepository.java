@@ -14,7 +14,10 @@ public interface ParkingSpotRepository extends JpaRepository<ParkingSpot, Parkin
 
     @Query("SELECT (1.0 * SUM(CASE WHEN p.occupied = true THEN 1 ELSE 0 END)) / NULLIF(COUNT(p), 0) FROM ParkingSpot p")
     Double findOccupancyRate();
+
     boolean existsByOccupiedFalseAndSectorCodeIn(Collection<SectorCode> sectorCodes);
+
     Optional<ParkingSpot> findByExternalId(Long externalId);
+
     Optional<ParkingSpot> findByLocation(GeoLocation location);
 }
