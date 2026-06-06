@@ -5,6 +5,7 @@ ALTER TABLE vehicle_event DROP FOREIGN KEY fk_vehicle_spot;
 ALTER TABLE daily_revenue DROP FOREIGN KEY fk_daily_revenue_sector;
 
 -- sector: BIGINT AUTO_INCREMENT → BINARY(16)
+ALTER TABLE sector MODIFY id BIGINT NOT NULL;
 ALTER TABLE sector DROP PRIMARY KEY;
 ALTER TABLE sector ADD COLUMN id_new BINARY(16) NOT NULL FIRST;
 ALTER TABLE sector DROP COLUMN id;
@@ -20,6 +21,7 @@ ALTER TABLE spot RENAME COLUMN id_new TO id;
 ALTER TABLE spot ADD PRIMARY KEY (id);
 
 -- vehicle_event: id BIGINT → BINARY(16); spot_id BIGINT → BINARY(16)
+ALTER TABLE vehicle_event MODIFY id BIGINT NOT NULL;
 ALTER TABLE vehicle_event DROP PRIMARY KEY;
 ALTER TABLE vehicle_event ADD COLUMN id_new BINARY(16) NOT NULL FIRST;
 ALTER TABLE vehicle_event DROP COLUMN id;
@@ -28,6 +30,7 @@ ALTER TABLE vehicle_event ADD PRIMARY KEY (id);
 ALTER TABLE vehicle_event MODIFY COLUMN spot_id BINARY(16) NULL;
 
 -- daily_revenue: BIGINT → BINARY(16)
+ALTER TABLE daily_revenue MODIFY id BIGINT NOT NULL;
 ALTER TABLE daily_revenue DROP PRIMARY KEY;
 ALTER TABLE daily_revenue ADD COLUMN id_new BINARY(16) NOT NULL FIRST;
 ALTER TABLE daily_revenue DROP COLUMN id;
