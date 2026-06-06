@@ -24,7 +24,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -68,9 +67,7 @@ class ChargeCalculatorTest {
     @Test
     void sectorCodeNullUsesMinBasePrice() {
         ParkingSession session = entered("CAR002");
-        when(sectorRepository.findAll()).thenReturn(List.of(
-                sector("B", "20.00"),
-                sector("A", "5.00")));
+        when(sectorRepository.findMinBasePrice()).thenReturn(Optional.of(new BigDecimal("5.00")));
         when(spotRepository.findOccupancyRate()).thenReturn(0.0); // < 0.25 → 10% discount
 
         calculator.charge(session, EXIT_2H);
@@ -84,7 +81,7 @@ class ChargeCalculatorTest {
         ParkingSpot parkSpot = spot("MISSING");
         ParkingSession session = parkedSession("CAR003", parkSpot);
         when(sectorRepository.findByCode(SectorCode.of("MISSING"))).thenReturn(Optional.empty());
-        when(sectorRepository.findAll()).thenReturn(List.of(sector("A", "8.00"), sector("B", "12.00")));
+        when(sectorRepository.findMinBasePrice()).thenReturn(Optional.of(new BigDecimal("8.00")));
         when(spotRepository.findOccupancyRate()).thenReturn(0.3); // < 0.50 → standard
 
         calculator.charge(session, EXIT_2H);
@@ -96,7 +93,7 @@ class ChargeCalculatorTest {
     @Test
     void noSectorsAtAllChargesZero() {
         ParkingSession session = entered("CAR004");
-        when(sectorRepository.findAll()).thenReturn(List.of());
+        when(sectorRepository.findMinBasePrice()).thenReturn(Optional.empty());
         when(spotRepository.findOccupancyRate()).thenReturn(null);
 
         calculator.charge(session, EXIT_2H);

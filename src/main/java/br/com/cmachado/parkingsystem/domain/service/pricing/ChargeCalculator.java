@@ -14,7 +14,6 @@ import br.com.cmachado.parkingsystem.domain.shared.DomainService;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.Optional;
 
 @Component
@@ -47,7 +46,7 @@ public class ChargeCalculator {
 
     private OccupancyRate resolveOccupancyRate() {
         double rawRate = Optional.ofNullable(parkingSpotRepository.findOccupancyRate()).orElse(0.0);
-        double clampedRate = Math.max(0.0, Math.min(1.0, rawRate));
+        double clampedRate = Math.clamp(rawRate, 0.0, 1.0);
         return OccupancyRate.of(clampedRate, LocalDateTime.now());
     }
 
@@ -57,9 +56,6 @@ public class ChargeCalculator {
             if (sector.isPresent()) return sector.get().getBasePrice();
         }
 
-        return sectorRepository.findAll().stream()
-                .map(Sector::getBasePrice)
-                .min(Comparator.comparing(Money::getAmount))
-                .orElse(Money.ZERO);
+        return sectorRepository.findMinBasePrice().map(Money::of).orElse(Money.ZERO);
     }
 }
