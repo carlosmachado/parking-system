@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class RevenueApplicationServiceImplTest {
+class RevenueServiceImplTest {
 
     @Mock
     private DailyRevenueRepository dailyRevenueRepository;
@@ -89,8 +89,8 @@ class RevenueApplicationServiceImplTest {
         assertEquals(SectorCode.of("SEC-A"), sectorCaptor.getValue());
     }
 
-    private RevenueApplicationServiceImpl service() {
-        return new RevenueApplicationServiceImpl(dailyRevenueRepository);
+    private RevenueServiceImpl service() {
+        return new RevenueServiceImpl(dailyRevenueRepository);
     }
 
     private DailyRevenue revenue(String sector, LocalDate date, String amount) {

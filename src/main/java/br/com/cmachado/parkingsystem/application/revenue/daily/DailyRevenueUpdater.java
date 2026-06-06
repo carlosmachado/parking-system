@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.application.revenue.impl;
+package br.com.cmachado.parkingsystem.application.revenue.daily;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
@@ -12,15 +12,15 @@ import java.time.LocalDate;
 
 /**
  * Applies a single revenue increment in its own transaction. Kept separate from
- * {@link RevenueAsyncListener} so the listener can wrap this call in a retry loop:
+ * {@link DailyRevenueAsyncListener} so the listener can wrap this call in a retry loop:
  * retrying must restart the whole transaction, which only works across a bean boundary.
  */
 @Service
-public class RevenueUpdater {
+public class DailyRevenueUpdater {
 
     private final DailyRevenueRepository dailyRevenueRepository;
 
-    public RevenueUpdater(DailyRevenueRepository dailyRevenueRepository) {
+    public DailyRevenueUpdater(DailyRevenueRepository dailyRevenueRepository) {
         this.dailyRevenueRepository = dailyRevenueRepository;
     }
 

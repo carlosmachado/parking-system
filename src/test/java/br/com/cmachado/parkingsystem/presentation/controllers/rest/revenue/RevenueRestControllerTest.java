@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.presentation.controllers.rest.revenue;
 
-import br.com.cmachado.parkingsystem.application.revenue.RevenueApplicationService;
+import br.com.cmachado.parkingsystem.application.revenue.RevenueService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -24,7 +24,7 @@ class RevenueRestControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private RevenueApplicationService revenueService;
+    private RevenueService revenueService;
 
     @Test
     void returnsRevenueForGivenSectorAndDate() throws Exception {

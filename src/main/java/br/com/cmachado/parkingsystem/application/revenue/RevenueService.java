@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 
 @ApplicationService
-public interface RevenueApplicationService {
+public interface RevenueService {
     @Transactional(readOnly = true)
     RevenueResponse getRevenue(LocalDate date, String sectorCode);
 

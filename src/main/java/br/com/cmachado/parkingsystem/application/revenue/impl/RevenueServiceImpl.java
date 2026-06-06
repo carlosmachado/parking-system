@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.application.revenue.impl;
 
-import br.com.cmachado.parkingsystem.application.revenue.RevenueApplicationService;
+import br.com.cmachado.parkingsystem.application.revenue.RevenueService;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Currency;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenue;
@@ -18,11 +18,11 @@ import java.time.LocalDateTime;
  * (maintained on vehicle exit) for a single sector or all sectors on a given day.
  */
 @Service
-public class RevenueApplicationServiceImpl implements RevenueApplicationService {
+public class RevenueServiceImpl implements RevenueService {
 
     private final DailyRevenueRepository dailyRevenueRepository;
 
-    public RevenueApplicationServiceImpl(DailyRevenueRepository dailyRevenueRepository) {
+    public RevenueServiceImpl(DailyRevenueRepository dailyRevenueRepository) {
         this.dailyRevenueRepository = dailyRevenueRepository;
     }
 

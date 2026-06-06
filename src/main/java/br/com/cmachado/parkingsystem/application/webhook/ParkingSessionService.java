@@ -5,7 +5,7 @@ import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.Webho
 import org.springframework.transaction.annotation.Transactional;
 
 @ApplicationService
-public interface WebhookApplicationService {
+public interface ParkingSessionService {
 
     @Transactional
     void processEntry(WebhookEventRequest request);

@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook;
 
-import br.com.cmachado.parkingsystem.application.webhook.WebhookApplicationService;
+import br.com.cmachado.parkingsystem.application.webhook.ParkingSessionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,10 +19,10 @@ public class WebhookRestController {
     /** Attempts for a use case that may lose an optimistic-lock race on a Spot. */
     private static final int MAX_ATTEMPTS = 3;
 
-    private final WebhookApplicationService webhookService;
+    private final ParkingSessionService parkingSessionService;
 
-    public WebhookRestController(WebhookApplicationService webhookService) {
-        this.webhookService = webhookService;
+    public WebhookRestController(ParkingSessionService parkingSessionService) {
+        this.parkingSessionService = parkingSessionService;
     }
 
     /**
@@ -37,9 +37,9 @@ public class WebhookRestController {
         }
 
         switch (request.getEventType().toUpperCase()) {
-            case "ENTRY" -> runWithRetry(() -> webhookService.processEntry(request));
-            case "PARKED" -> runWithRetry(() -> webhookService.processParked(request));
-            case "EXIT" -> runWithRetry(() -> webhookService.processExit(request));
+            case "ENTRY" -> runWithRetry(() -> parkingSessionService.processEntry(request));
+            case "PARKED" -> runWithRetry(() -> parkingSessionService.processParked(request));
+            case "EXIT" -> runWithRetry(() -> parkingSessionService.processExit(request));
             default -> throw new IllegalArgumentException("Unknown event_type: " + request.getEventType());
         }
 

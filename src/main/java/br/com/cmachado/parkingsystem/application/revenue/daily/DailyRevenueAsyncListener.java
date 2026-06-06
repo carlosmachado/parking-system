@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.application.revenue.impl;
+package br.com.cmachado.parkingsystem.application.revenue.daily;
 
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleExited;
 import io.micrometer.core.instrument.Counter;
@@ -16,7 +16,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * Updates the daily revenue when a vehicle exits. Runs asynchronously after the exit
  * transaction commits, so revenue bookkeeping never blocks or rolls back the webhook request.
  *
- * <p>The actual database write lives in {@link RevenueUpdater}, which takes the daily-revenue
+ * <p>The actual database write lives in {@link DailyRevenueUpdater}, which takes the daily-revenue
  * row under a pessimistic lock so concurrent exits serialize without losing increments. The
  * only race left is the very first exit of the day, where two transactions can both try to
  * insert the row; the loser hits the unique constraint and this retry loop re-runs it, by
@@ -29,17 +29,17 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * normally.</p>
  */
 @Component
-public class RevenueAsyncListener {
+public class DailyRevenueAsyncListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(RevenueAsyncListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(DailyRevenueAsyncListener.class);
 
     /** Attempts for the cold-start insert race on a sector's first exit of the day. */
     private static final int MAX_ATTEMPTS = 5;
 
-    private final RevenueUpdater revenueUpdater;
+    private final DailyRevenueUpdater revenueUpdater;
     private final Counter revenueFailedCounter;
 
-    public RevenueAsyncListener(RevenueUpdater revenueUpdater, MeterRegistry meterRegistry) {
+    public DailyRevenueAsyncListener(DailyRevenueUpdater revenueUpdater, MeterRegistry meterRegistry) {
         this.revenueUpdater = revenueUpdater;
         this.revenueFailedCounter = Counter.builder("revenue.update.failed")
                 .description("Revenue increments permanently lost due to persistent DB failure")

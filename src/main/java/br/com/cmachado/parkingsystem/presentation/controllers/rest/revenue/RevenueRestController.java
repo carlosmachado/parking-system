@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.presentation.controllers.rest.revenue;
 
-import br.com.cmachado.parkingsystem.application.revenue.RevenueApplicationService;
+import br.com.cmachado.parkingsystem.application.revenue.RevenueService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,9 +17,9 @@ import java.time.LocalDate;
 @RequestMapping("/revenue")
 public class RevenueRestController {
 
-    private final RevenueApplicationService revenueService;
+    private final RevenueService revenueService;
 
-    public RevenueRestController(RevenueApplicationService revenueService) {
+    public RevenueRestController(RevenueService revenueService) {
         this.revenueService = revenueService;
     }
 

@@ -44,8 +44,10 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
             logger.warn("Received null garage config from simulator.");
             return;
         }
+
         initializeSectors(config.getGarage());
         initializeSpots(config.getSpots());
+
         logger.info("Garage synced: {} sectors, {} spots.",
                 config.getGarage() != null ? config.getGarage().size() : 0,
                 config.getSpots() != null ? config.getSpots().size() : 0);
@@ -58,8 +60,8 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
     }
 
     private void upsertSector(SectorData data) {
-        SectorCode code = SectorCode.of(data.getSector());
-        Money basePrice = Money.of(data.getBasePrice());
+        var code = SectorCode.of(data.getSector());
+        var basePrice = Money.of(data.getBasePrice());
         LocalTime openHour = parseTime(data.getOpenHour(), LocalTime.MIDNIGHT);
         LocalTime closeHour = parseTime(data.getCloseHour(), LocalTime.of(23, 59));
         Integer durationLimitMinutes = data.getDurationLimitMinutes() != null ? data.getDurationLimitMinutes() : 1440;
@@ -67,8 +69,11 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
         Sector sector = sectorRepository.findByCode(code)
                 .orElseGet(() -> Sector.register(code, basePrice, data.getMaxCapacity(),
                         openHour, closeHour, durationLimitMinutes));
+
         sector.update(basePrice, data.getMaxCapacity(), openHour, closeHour, durationLimitMinutes);
+
         sectorRepository.save(sector);
+
         logger.info("Synced sector {} (price={}, capacity={}, hours={}-{}).",
                 data.getSector(), data.getBasePrice(), data.getMaxCapacity(), openHour, closeHour);
     }
@@ -80,9 +85,9 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
     }
 
     private void upsertSpot(SpotData data) {
-        SectorCode code = SectorCode.of(data.getSector());
+        var code = SectorCode.of(data.getSector());
 
-        GeoLocation location = GeoLocation.of(data.getLat(), data.getLng());
+        var location = GeoLocation.of(data.getLat(), data.getLng());
 
         ParkingSpot spot = spotRepository.findByExternalId(data.getId())
                 .orElseGet(() -> ParkingSpot.register(data.getId(), code, location));
