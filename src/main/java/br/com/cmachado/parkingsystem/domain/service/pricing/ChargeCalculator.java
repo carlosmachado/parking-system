@@ -36,17 +36,19 @@ public class ChargeCalculator {
     public void charge(ParkingSession session, LocalDateTime exitTime) {
         Money basePrice = resolveBasePrice(session.getSectorCode());
 
-        double rawRate = Optional.ofNullable(parkingSpotRepository.findOccupancyRate()).orElse(0.0);
-
-        OccupancyRate occupancyRate = OccupancyRate.of(Math.min(1.0, rawRate), LocalDateTime.now());
-
-        PricingStrategy strategy = pricingStrategyFactory.getStrategy(occupancyRate);
+        PricingStrategy strategy = pricingStrategyFactory.getStrategy(resolveOccupancyRate());
 
         Period period = session.getPeriod().end(exitTime);
 
         var amountCharged = strategy.calculate(period, basePrice);
 
         session.exit(exitTime, amountCharged);
+    }
+
+    private OccupancyRate resolveOccupancyRate() {
+        double rawRate = Optional.ofNullable(parkingSpotRepository.findOccupancyRate()).orElse(0.0);
+        double clampedRate = Math.max(0.0, Math.min(1.0, rawRate));
+        return OccupancyRate.of(clampedRate, LocalDateTime.now());
     }
 
     private Money resolveBasePrice(SectorCode sectorCode) {

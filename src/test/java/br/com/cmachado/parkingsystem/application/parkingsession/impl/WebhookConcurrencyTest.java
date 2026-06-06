@@ -146,7 +146,10 @@ class WebhookConcurrencyTest {
                 "both vehicles must be parked");
         assertNotEquals(sessions.get(0).getSpotId(), sessions.get(1).getSpotId(),
                 "vehicles must occupy distinct spots");
-        assertEquals(2, spotRepository.countByOccupiedTrue());
+        long occupiedSpots = spotRepository.findAll().stream()
+                .filter(ParkingSpot::isOccupied)
+                .count();
+        assertEquals(2, occupiedSpots);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

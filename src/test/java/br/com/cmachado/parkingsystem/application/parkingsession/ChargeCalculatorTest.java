@@ -105,6 +105,32 @@ class ChargeCalculatorTest {
     }
 
     @Test
+    void occupancyRateAboveOneIsCapped() {
+        ParkingSpot parkSpot = spot("A");
+        ParkingSession session = parkedSession("CAR006", parkSpot);
+        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.of(sector("A", "10.00")));
+        when(spotRepository.findOccupancyRate()).thenReturn(1.5);
+
+        calculator.charge(session, EXIT_2H);
+
+        // 2h * 10.00 * 1.25 = 25.00
+        assertEquals(new BigDecimal("25.00"), session.getAmountCharged().getAmount());
+    }
+
+    @Test
+    void negativeOccupancyRateIsFloored() {
+        ParkingSpot parkSpot = spot("A");
+        ParkingSession session = parkedSession("CAR007", parkSpot);
+        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.of(sector("A", "10.00")));
+        when(spotRepository.findOccupancyRate()).thenReturn(-0.5);
+
+        calculator.charge(session, EXIT_2H);
+
+        // 2h * 10.00 * 0.90 = 18.00
+        assertEquals(new BigDecimal("18.00"), session.getAmountCharged().getAmount());
+    }
+
+    @Test
     void withinThirtyMinutesChargesZero() {
         ParkingSpot parkSpot = spot("A");
         ParkingSession session = parkedSession("CAR005", parkSpot);

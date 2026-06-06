@@ -96,8 +96,15 @@ public class Sector extends AggregateRootBase<Sector> {
         this.durationLimitMinutes = durationLimitMinutes != null ? durationLimitMinutes : 1440;
     }
 
-    /** Returns true if the sector is accepting vehicles at the given time. */
+    /**
+     * Returns true if the sector is accepting vehicles at the given time. Supports windows
+     * that wrap past midnight (e.g. 22:00–06:00), where {@code openHour} is after
+     * {@code closeHour}.
+     */
     public boolean isOpen(LocalTime time) {
+        if (openHour.isAfter(closeHour)) {
+            return !time.isBefore(openHour) || !time.isAfter(closeHour);
+        }
         return !time.isBefore(openHour) && !time.isAfter(closeHour);
     }
 

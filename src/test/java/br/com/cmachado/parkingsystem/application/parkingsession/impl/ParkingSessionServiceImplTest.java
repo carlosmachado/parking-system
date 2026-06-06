@@ -6,9 +6,7 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
-import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
-import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
@@ -25,7 +23,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
@@ -46,7 +42,6 @@ class ParkingSessionServiceImplTest {
 
     @Mock private ParkingSessionRepository sessionRepository;
     @Mock private ParkingSpotRepository spotRepository;
-    @Mock private SectorRepository sectorRepository;
     @Mock private ChargeCalculator chargeCalculator;
 
     private ParkingSessionServiceImpl service;
@@ -54,8 +49,7 @@ class ParkingSessionServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new ParkingSessionServiceImpl(
-                sessionRepository, spotRepository, sectorRepository,
-                chargeCalculator, new SimpleMeterRegistry());
+                sessionRepository, spotRepository, chargeCalculator, new SimpleMeterRegistry());
     }
 
     // ── validation ───────────────────────────────────────────────────────────
@@ -108,8 +102,7 @@ class ParkingSessionServiceImplTest {
 
     @Test
     void entryWhenGarageFullThrowsGarageFullException() {
-        when(sectorRepository.findAll()).thenReturn(List.of(sector("A", LocalTime.MIDNIGHT, LocalTime.of(23, 59))));
-        when(spotRepository.existsByOccupiedFalseAndSectorCodeIn(anyCollection())).thenReturn(false);
+        when(spotRepository.existsAvailableSpotInOpenSector(any())).thenReturn(false);
 
         assertThrows(GarageFullException.class,
                 () -> service.handle(entry("FULL123", LocalDateTime.parse("2025-01-01T10:00:00"))));
@@ -119,7 +112,7 @@ class ParkingSessionServiceImplTest {
 
     @Test
     void entryRejectedWhenAllSectorsClosed() {
-        when(sectorRepository.findAll()).thenReturn(List.of(sector("A", LocalTime.of(0, 0), LocalTime.of(0, 1))));
+        when(spotRepository.existsAvailableSpotInOpenSector(any())).thenReturn(false);
 
         assertThrows(GarageFullException.class,
                 () -> service.handle(entry("CLOSED1", LocalDateTime.parse("2025-01-01T10:00:00"))));
@@ -129,8 +122,7 @@ class ParkingSessionServiceImplTest {
 
     @Test
     void entryWhenGarageHasCapacityStoresSession() {
-        when(sectorRepository.findAll()).thenReturn(List.of(sector("A", LocalTime.MIDNIGHT, LocalTime.of(23, 59))));
-        when(spotRepository.existsByOccupiedFalseAndSectorCodeIn(anyCollection())).thenReturn(true);
+        when(spotRepository.existsAvailableSpotInOpenSector(any())).thenReturn(true);
 
         service.handle(entry("OPEN123", LocalDateTime.parse("2025-01-01T10:00:00")));
 
@@ -278,7 +270,4 @@ class ParkingSessionServiceImplTest {
         return ParkingSpot.register(externalId, SectorCode.of(sectorCode), GeoLocation.of(lat, lng));
     }
 
-    private Sector sector(String code, LocalTime openHour, LocalTime closeHour) {
-        return Sector.register(SectorCode.of(code), Money.of("10.00"), 10, openHour, closeHour, 1440);
-    }
 }

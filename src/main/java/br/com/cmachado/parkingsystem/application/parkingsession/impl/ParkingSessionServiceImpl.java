@@ -2,9 +2,6 @@ package br.com.cmachado.parkingsystem.application.parkingsession.impl;
 
 import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
 import br.com.cmachado.parkingsystem.application.parkingsession.ParkingSessionService;
-import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
-import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
-import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotId;
@@ -29,8 +26,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class ParkingSessionServiceImpl implements ParkingSessionService {
@@ -40,18 +35,15 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
 
     private final ParkingSessionRepository sessionRepository;
     private final ParkingSpotRepository parkingSpotRepository;
-    private final SectorRepository sectorRepository;
     private final ChargeCalculator chargeCalculator;
     private final Counter garageFullCounter;
 
     public ParkingSessionServiceImpl(ParkingSessionRepository sessionRepository,
                                      ParkingSpotRepository parkingSpotRepository,
-                                     SectorRepository sectorRepository,
                                      ChargeCalculator chargeCalculator,
                                      MeterRegistry meterRegistry) {
         this.sessionRepository = sessionRepository;
         this.parkingSpotRepository = parkingSpotRepository;
-        this.sectorRepository = sectorRepository;
         this.chargeCalculator = chargeCalculator;
         this.garageFullCounter = Counter.builder("garage.entry.rejected")
                 .description("Entry attempts rejected because the garage was at full capacity")
@@ -101,15 +93,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     }
 
     private boolean hasAvailableSpotInOpenSector() {
-        var now = LocalTime.now();
-
-        //todo move to query would improve performance, even better if is just one query joining sector and spot
-        Set<SectorCode> openCodes = sectorRepository.findAll().stream()
-                .filter(s -> s.isOpen(now))
-                .map(Sector::getCode)
-                .collect(Collectors.toSet());
-
-        return !openCodes.isEmpty() && parkingSpotRepository.existsByOccupiedFalseAndSectorCodeIn(openCodes);
+        return parkingSpotRepository.existsAvailableSpotInOpenSector(LocalTime.now());
     }
 
     private void processParked(WebhookEventRequest request) {

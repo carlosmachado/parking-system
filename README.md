@@ -84,9 +84,11 @@ curl "http://localhost:3003/revenue?date=2025-01-01&sector=A"
 
 ## Regras de negócio
 
-- **Entrada**: ocupa uma vaga. Com a garagem 100% lotada, novas entradas são bloqueadas até
-  uma vaga ser liberada em qualquer setor.
-- **Saída**: libera a vaga e cobra a permanência.
+- **Entrada**: cria uma sessão quando existe ao menos uma vaga livre em um setor aberto no
+  horário atual. Se nenhum setor aberto tiver vaga disponível, a entrada é bloqueada.
+- **Estacionamento**: associa o veículo à vaga livre mais próxima da localização recebida e
+  marca a vaga como ocupada.
+- **Saída**: libera a vaga e cobra a permanência usando a ocupação global atual da garagem.
   - Os primeiros 30 minutos são gratuitos.
   - A partir daí, cobra-se uma tarifa fixa por hora iniciada (incluindo a primeira hora),
     usando o `basePrice` do setor, arredondando para cima.
