@@ -209,8 +209,6 @@ class ParkingSessionServiceImplTest {
                 .thenReturn(Optional.of(session));
         when(spotRepository.findById(theSpot.getId())).thenReturn(Optional.of(theSpot));
         when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.empty());
-        when(sessionRepository.existsBySpotIdAndStatusAndIdNot(theSpot.getId(), ParkingSessionStatus.PARKED, session.getId()))
-                .thenReturn(false);
 
         service.handle(exit("EXIT003", LocalDateTime.parse("2025-01-01T12:00:00")));
 

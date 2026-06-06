@@ -5,8 +5,10 @@ import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.OccupancyRate;
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
+import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotId;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.Period;
@@ -133,28 +135,25 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                         licensePlate, List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED))
                 .orElseThrow(() -> new ParkingSessionNotFoundException("No active session found for plate " + licensePlate));
 
-        if (session.getStatus() == ParkingSessionStatus.PARKED) {
-            ParkingSpot spot = parkingSpotRepository.findById(session.getSpotId())
-                    .orElseThrow(() -> new ParkingSpotNotFoundException("No spot found for id " + session.getSpotId()));
+        ParkingSpotId spotId = session.getSpotId();
+        Money amountCharged = calculateCharge(session, exitTime);
+        session.exit(exitTime, amountCharged);
+        sessionRepository.save(session);
 
-            Money amountCharged = calculateCharge(session, spot, exitTime);
-            session.exit(exitTime, amountCharged);
-            sessionRepository.save(session);
-
-            boolean anotherParkedHere = sessionRepository.existsBySpotIdAndStatusAndIdNot(
-                    spot.getId(), ParkingSessionStatus.PARKED, session.getId());
-            if (!anotherParkedHere) {
-                spot.release();
-                parkingSpotRepository.save(spot);
-            }
-        } else {
-            session.exit(exitTime, Money.ZERO);
-            sessionRepository.save(session);
+        if (spotId != null) {
+            ParkingSpot spot = parkingSpotRepository.findById(spotId)
+                    .orElseThrow(() -> new ParkingSpotNotFoundException("No spot found for id " + spotId));
+            spot.release();
+            parkingSpotRepository.save(spot);
         }
     }
 
-    private Money calculateCharge(ParkingSession session, ParkingSpot spot, LocalDateTime exitTime) {
-        Sector sector = sectorRepository.findByCode(spot.getSectorCode()).orElse(null);
+    private Money calculateCharge(ParkingSession session, LocalDateTime exitTime) {
+        SectorCode sectorCode = session.getSectorCode();
+        if (sectorCode == null) {
+            return Money.ZERO;
+        }
+        Sector sector = sectorRepository.findByCode(sectorCode).orElse(null);
         if (sector == null) {
             return Money.ZERO;
         }
