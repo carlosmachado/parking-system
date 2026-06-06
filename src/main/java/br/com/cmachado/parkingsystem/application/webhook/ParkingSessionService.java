@@ -8,11 +8,5 @@ import org.springframework.transaction.annotation.Transactional;
 public interface ParkingSessionService {
 
     @Transactional
-    void processEntry(WebhookEventRequest request);
-
-    @Transactional
-    void processParked(WebhookEventRequest request);
-
-    @Transactional
-    void processExit(WebhookEventRequest request);
+    void handle(WebhookEventRequest request);
 }

@@ -89,20 +89,20 @@ class ParkingSessionServiceTest {
         entryReq.setLicensePlate(plate);
         entryReq.setEventType("ENTRY");
         entryReq.setEntryTime(entryTime);
-        webhookService.processEntry(entryReq);
+        webhookService.handle(entryReq);
 
         WebhookEventRequest parkReq = new WebhookEventRequest();
         parkReq.setLicensePlate(plate);
         parkReq.setEventType("PARKED");
         parkReq.setLat(10.0);
         parkReq.setLng(10.0);
-        webhookService.processParked(parkReq);
+        webhookService.handle(parkReq);
 
         WebhookEventRequest exitReq = new WebhookEventRequest();
         exitReq.setLicensePlate(plate);
         exitReq.setEventType("EXIT");
         exitReq.setExitTime(LocalDateTime.now().toString());
-        webhookService.processExit(exitReq);
+        webhookService.handle(exitReq);
 
         // Revenue is updated asynchronously after the exit transaction commits.
         // Stayed 2h, base price 10, occupancy 1/2 (50%) -> +10% surcharge: 20 * 1.10 = 22.00
@@ -125,7 +125,7 @@ class ParkingSessionServiceTest {
 
         assertThrows(
                 br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException.class,
-                () -> webhookService.processEntry(entryReq));
+                () -> webhookService.handle(entryReq));
 
         assertEquals(countBefore, sessionRepository.count(), "rejected entry must not be stored");
     }
@@ -135,14 +135,14 @@ class ParkingSessionServiceTest {
         entryReq.setLicensePlate(plate);
         entryReq.setEventType("ENTRY");
         entryReq.setEntryTime(LocalDateTime.now().toString());
-        webhookService.processEntry(entryReq);
+        webhookService.handle(entryReq);
 
         WebhookEventRequest parkReq = new WebhookEventRequest();
         parkReq.setLicensePlate(plate);
         parkReq.setEventType("PARKED");
         parkReq.setLat(lat);
         parkReq.setLng(lng);
-        webhookService.processParked(parkReq);
+        webhookService.handle(parkReq);
     }
 
     /** Polls the revenue endpoint until the async update lands or a timeout is reached. */

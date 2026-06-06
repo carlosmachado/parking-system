@@ -17,6 +17,7 @@ import br.com.cmachado.parkingsystem.domain.service.pricing.PricingStrategyFacto
 import br.com.cmachado.parkingsystem.domain.service.pricing.StandardPricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.Surcharge10PricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.Surcharge25PricingStrategy;
+import br.com.cmachado.parkingsystem.infrastructure.http.BadRequestException;
 import br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException;
 import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSessionNotFoundException;
 import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSpotNotFoundException;
@@ -46,14 +47,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ParkingSessionServiceImplTest {
 
-    @Mock
-    private ParkingSessionRepository sessionRepository;
-
-    @Mock
-    private ParkingSpotRepository spotRepository;
-
-    @Mock
-    private SectorRepository sectorRepository;
+    @Mock private ParkingSessionRepository sessionRepository;
+    @Mock private ParkingSpotRepository spotRepository;
+    @Mock private SectorRepository sectorRepository;
 
     private ParkingSessionServiceImpl service;
 
@@ -65,20 +61,65 @@ class ParkingSessionServiceImplTest {
                 new Surcharge10PricingStrategy(),
                 new Surcharge25PricingStrategy());
         service = new ParkingSessionServiceImpl(
-                sessionRepository,
-                spotRepository,
-                sectorRepository,
-                new OccupancyDomainService(),
-                pricingStrategyFactory,
+                sessionRepository, spotRepository, sectorRepository,
+                new OccupancyDomainService(), pricingStrategyFactory,
                 new SimpleMeterRegistry());
     }
+
+    // ── validation ───────────────────────────────────────────────────────────
+
+    @Test
+    void missingLicensePlateThrows400() {
+        WebhookEventRequest req = new WebhookEventRequest();
+        req.setEventType("ENTRY");
+        assertThrows(BadRequestException.class, () -> service.handle(req));
+    }
+
+    @Test
+    void missingEventTypeThrows400() {
+        WebhookEventRequest req = new WebhookEventRequest();
+        req.setLicensePlate("ZUL0001");
+        assertThrows(BadRequestException.class, () -> service.handle(req));
+    }
+
+    @Test
+    void unknownEventTypeThrows400() {
+        assertThrows(BadRequestException.class,
+                () -> service.handle(request("ZUL0001", "TELEPORT")));
+    }
+
+    @Test
+    void entryWithoutEntryTimeThrows400() {
+        WebhookEventRequest req = new WebhookEventRequest();
+        req.setLicensePlate("ZUL0001");
+        req.setEventType("ENTRY");
+        assertThrows(BadRequestException.class, () -> service.handle(req));
+    }
+
+    @Test
+    void parkedWithoutLatLngThrows400() {
+        WebhookEventRequest req = new WebhookEventRequest();
+        req.setLicensePlate("ZUL0001");
+        req.setEventType("PARKED");
+        assertThrows(BadRequestException.class, () -> service.handle(req));
+    }
+
+    @Test
+    void exitWithoutExitTimeThrows400() {
+        WebhookEventRequest req = new WebhookEventRequest();
+        req.setLicensePlate("ZUL0001");
+        req.setEventType("EXIT");
+        assertThrows(BadRequestException.class, () -> service.handle(req));
+    }
+
+    // ── ENTRY ─────────────────────────────────────────────────────────────────
 
     @Test
     void entryWhenGarageFullThrowsGarageFullException() {
         when(spotRepository.existsByOccupiedFalse()).thenReturn(false);
 
         assertThrows(GarageFullException.class,
-                () -> service.processEntry(entry("FULL123", LocalDateTime.parse("2025-01-01T10:00:00"))));
+                () -> service.handle(entry("FULL123", LocalDateTime.parse("2025-01-01T10:00:00"))));
 
         verify(sessionRepository, never()).save(any());
     }
@@ -87,17 +128,19 @@ class ParkingSessionServiceImplTest {
     void entryWhenGarageHasCapacityStoresSession() {
         when(spotRepository.existsByOccupiedFalse()).thenReturn(true);
 
-        service.processEntry(entry("OPEN123", LocalDateTime.parse("2025-01-01T10:00:00")));
+        service.handle(entry("OPEN123", LocalDateTime.parse("2025-01-01T10:00:00")));
 
         verify(sessionRepository).save(any(ParkingSession.class));
     }
+
+    // ── PARKED ────────────────────────────────────────────────────────────────
 
     @Test
     void parkedThrowsWhenSessionNotFound() {
         when(sessionRepository.findByLicensePlateAndStatusIn(any(), any())).thenReturn(Optional.empty());
 
         assertThrows(ParkingSessionNotFoundException.class,
-                () -> service.processParked(parked("NOPE01", 10.0, 10.0)));
+                () -> service.handle(parked("NOPE01", 10.0, 10.0)));
     }
 
     @Test
@@ -108,7 +151,7 @@ class ParkingSessionServiceImplTest {
         when(spotRepository.findByLocation(any())).thenReturn(Optional.empty());
 
         assertThrows(ParkingSpotNotFoundException.class,
-                () -> service.processParked(parked("CAR0002", 10.0, 10.0)));
+                () -> service.handle(parked("CAR0002", 10.0, 10.0)));
     }
 
     @Test
@@ -119,13 +162,15 @@ class ParkingSessionServiceImplTest {
                 .thenReturn(Optional.of(session));
         when(spotRepository.findByLocation(GeoLocation.of(10.0, 10.0))).thenReturn(Optional.of(parkSpot));
 
-        service.processParked(parked("CAR0001", 10.0, 10.0));
+        service.handle(parked("CAR0001", 10.0, 10.0));
 
         assertEquals(ParkingSessionStatus.PARKED, session.getStatus());
         assertTrue(parkSpot.isOccupied());
         verify(spotRepository).save(parkSpot);
         verify(sessionRepository).save(session);
     }
+
+    // ── EXIT ──────────────────────────────────────────────────────────────────
 
     @Test
     void exitFromEnteredSessionChargesZero() {
@@ -134,7 +179,7 @@ class ParkingSessionServiceImplTest {
                 LicensePlate.of("EXIT001"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
 
-        service.processExit(exit("EXIT001", LocalDateTime.parse("2025-01-01T11:00:00")));
+        service.handle(exit("EXIT001", LocalDateTime.parse("2025-01-01T11:00:00")));
 
         assertEquals(ParkingSessionStatus.EXITED, session.getStatus());
         assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount());
@@ -152,7 +197,7 @@ class ParkingSessionServiceImplTest {
         when(spotRepository.findById(session.getSpotId())).thenReturn(Optional.empty());
 
         assertThrows(ParkingSpotNotFoundException.class,
-                () -> service.processExit(exit("EXIT002", LocalDateTime.parse("2025-01-01T12:00:00"))));
+                () -> service.handle(exit("EXIT002", LocalDateTime.parse("2025-01-01T12:00:00"))));
     }
 
     @Test
@@ -167,7 +212,7 @@ class ParkingSessionServiceImplTest {
         when(sessionRepository.existsBySpotIdAndStatusAndIdNot(theSpot.getId(), ParkingSessionStatus.PARKED, session.getId()))
                 .thenReturn(false);
 
-        service.processExit(exit("EXIT003", LocalDateTime.parse("2025-01-01T12:00:00")));
+        service.handle(exit("EXIT003", LocalDateTime.parse("2025-01-01T12:00:00")));
 
         assertEquals(ParkingSessionStatus.EXITED, session.getStatus());
         assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount());
@@ -178,29 +223,36 @@ class ParkingSessionServiceImplTest {
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
+    private WebhookEventRequest request(String plate, String eventType) {
+        WebhookEventRequest req = new WebhookEventRequest();
+        req.setLicensePlate(plate);
+        req.setEventType(eventType);
+        return req;
+    }
+
     private WebhookEventRequest entry(String plate, LocalDateTime entryTime) {
-        WebhookEventRequest request = new WebhookEventRequest();
-        request.setLicensePlate(plate);
-        request.setEntryTime(entryTime.toString());
-        request.setEventType("ENTRY");
-        return request;
+        WebhookEventRequest req = new WebhookEventRequest();
+        req.setLicensePlate(plate);
+        req.setEntryTime(entryTime.toString());
+        req.setEventType("ENTRY");
+        return req;
     }
 
     private WebhookEventRequest parked(String plate, Double lat, Double lng) {
-        WebhookEventRequest request = new WebhookEventRequest();
-        request.setLicensePlate(plate);
-        request.setLat(lat);
-        request.setLng(lng);
-        request.setEventType("PARKED");
-        return request;
+        WebhookEventRequest req = new WebhookEventRequest();
+        req.setLicensePlate(plate);
+        req.setLat(lat);
+        req.setLng(lng);
+        req.setEventType("PARKED");
+        return req;
     }
 
     private WebhookEventRequest exit(String plate, LocalDateTime exitTime) {
-        WebhookEventRequest request = new WebhookEventRequest();
-        request.setLicensePlate(plate);
-        request.setExitTime(exitTime.toString());
-        request.setEventType("EXIT");
-        return request;
+        WebhookEventRequest req = new WebhookEventRequest();
+        req.setLicensePlate(plate);
+        req.setExitTime(exitTime.toString());
+        req.setEventType("EXIT");
+        return req;
     }
 
     private ParkingSession entered(String plate) {

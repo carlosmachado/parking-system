@@ -2,6 +2,7 @@ package br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook;
 
 import br.com.cmachado.parkingsystem.application.webhook.ParkingSessionService;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
+import br.com.cmachado.parkingsystem.infrastructure.http.BadRequestException;
 import br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,7 @@ class WebhookRestControllerTest {
     private ParkingSessionService webhookService;
 
     @Test
-    void entryEventReturns200AndDelegates() throws Exception {
+    void eventReturns200AndDelegates() throws Exception {
         String body = """
                 {"license_plate":"ZUL0001","entry_time":"2025-01-01T12:00:00.000Z","event_type":"ENTRY"}
                 """;
@@ -35,45 +36,13 @@ class WebhookRestControllerTest {
         mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk());
 
-        verify(webhookService).processEntry(any());
+        verify(webhookService).handle(any());
     }
 
     @Test
-    void parkedEventReturns200AndDelegates() throws Exception {
-        String body = """
-                {"license_plate":"ZUL0001","lat":-23.561684,"lng":-46.655981,"event_type":"PARKED"}
-                """;
+    void serviceThrowsBadRequestReturns400() throws Exception {
+        doThrow(new BadRequestException("event_type is required")).when(webhookService).handle(any());
 
-        mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isOk());
-
-        verify(webhookService).processParked(any());
-    }
-
-    @Test
-    void exitEventReturns200AndDelegates() throws Exception {
-        String body = """
-                {"license_plate":"ZUL0001","exit_time":"2025-01-01T12:30:00.000Z","event_type":"EXIT"}
-                """;
-
-        mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isOk());
-
-        verify(webhookService).processExit(any());
-    }
-
-    @Test
-    void unknownEventTypeReturns400() throws Exception {
-        String body = """
-                {"license_plate":"ZUL0001","event_type":"TELEPORT"}
-                """;
-
-        mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void missingEventTypeReturns400() throws Exception {
         String body = """
                 {"license_plate":"ZUL0001"}
                 """;
@@ -84,7 +53,7 @@ class WebhookRestControllerTest {
 
     @Test
     void entryWhenGarageFullReturns409WithErrorCode() throws Exception {
-        doThrow(new GarageFullException(LicensePlate.of("ZUL0001"))).when(webhookService).processEntry(any());
+        doThrow(new GarageFullException(LicensePlate.of("ZUL0001"))).when(webhookService).handle(any());
 
         String body = """
                 {"license_plate":"ZUL0001","entry_time":"2025-01-01T12:00:00.000Z","event_type":"ENTRY"}

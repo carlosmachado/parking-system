@@ -7,6 +7,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.Objects;
+
 /**
  * Value object for a latitude/longitude pair. Provides a relative distance used to pick
  * the spot nearest to a vehicle's reported position.
@@ -28,6 +30,12 @@ public class GeoLocation implements ValueObject<GeoLocation> {
     }
 
     public static GeoLocation of(double lat, double lng) {
+        return new GeoLocation(lat, lng);
+    }
+
+    public static GeoLocation of(Double lat, Double lng) {
+        Objects.requireNonNull(lat, "lat is required");
+        Objects.requireNonNull(lng, "lng is required");
         return new GeoLocation(lat, lng);
     }
 

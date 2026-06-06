@@ -4,7 +4,6 @@ import br.com.cmachado.parkingsystem.application.webhook.ParkingSessionService;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.OccupancyRate;
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
-import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
@@ -17,6 +16,7 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionS
 import br.com.cmachado.parkingsystem.domain.service.occupancy.OccupancyDomainService;
 import br.com.cmachado.parkingsystem.domain.service.pricing.PricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.PricingStrategyFactory;
+import br.com.cmachado.parkingsystem.infrastructure.http.BadRequestException;
 import br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException;
 import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSessionNotFoundException;
 import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSpotNotFoundException;
@@ -35,8 +35,9 @@ import java.util.List;
 /**
  * Orchestrates the vehicle lifecycle driven by simulator webhook events.
  *
- * <p>ENTRY is rejected with {@link GarageFullException} (HTTP 409, code EST-001) when the
- * garage is at 100% capacity. The vehicle must wait until a spot is freed in any sector.</p>
+ * <p>Validates and routes each event, then delegates to the matching use-case method.
+ * ENTRY is rejected with {@link GarageFullException} (HTTP 409, code EST-001) when the
+ * garage is at 100% capacity.</p>
  */
 @Service
 public class ParkingSessionServiceImpl implements ParkingSessionService {
@@ -67,12 +68,35 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
                 .register(meterRegistry);
     }
 
-    /**
-     * Records a vehicle entry. Throws {@link GarageFullException} if the garage is at capacity.
-     */
     @Override
     @Transactional
-    public void processEntry(WebhookEventRequest request) {
+    public void handle(WebhookEventRequest request) {
+        if (request.getLicensePlate() == null || request.getLicensePlate().isBlank())
+            throw new BadRequestException("license_plate is required");
+        if (request.getEventType() == null || request.getEventType().isBlank())
+            throw new BadRequestException("event_type is required");
+
+        switch (request.getEventType().toUpperCase()) {
+            case "ENTRY" -> {
+                if (request.getEntryTime() == null)
+                    throw new BadRequestException("entry_time is required for ENTRY events");
+                processEntry(request);
+            }
+            case "PARKED" -> {
+                if (request.getLat() == null || request.getLng() == null)
+                    throw new BadRequestException("lat and lng are required for PARKED events");
+                processParked(request);
+            }
+            case "EXIT" -> {
+                if (request.getExitTime() == null)
+                    throw new BadRequestException("exit_time is required for EXIT events");
+                processExit(request);
+            }
+            default -> throw new BadRequestException("Unknown event_type: " + request.getEventType());
+        }
+    }
+
+    private void processEntry(WebhookEventRequest request) {
         var licensePlate = LicensePlate.of(request.getLicensePlate());
         var entryTime = LocalDateTime.parse(request.getEntryTime(), FORMATTER);
 
@@ -85,12 +109,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         sessionRepository.save(ParkingSession.enter(licensePlate, entryTime));
     }
 
-    /**
-     * Locates the spot by the GPS coordinates sent in the PARKED event and parks the session on it.
-     */
-    @Override
-    @Transactional
-    public void processParked(WebhookEventRequest request) {
+    private void processParked(WebhookEventRequest request) {
         var licensePlate = LicensePlate.of(request.getLicensePlate());
 
         var session = sessionRepository.findByLicensePlateAndStatusIn(licensePlate, List.of(ParkingSessionStatus.ENTERED))
@@ -106,12 +125,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         sessionRepository.save(session);
     }
 
-    /**
-     * Releases the spot and charges the stay. Throws if the session or its spot cannot be found.
-     */
-    @Override
-    @Transactional
-    public void processExit(WebhookEventRequest request) {
+    private void processExit(WebhookEventRequest request) {
         var licensePlate = LicensePlate.of(request.getLicensePlate());
         var exitTime = LocalDateTime.parse(request.getExitTime(), FORMATTER);
 
