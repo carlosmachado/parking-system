@@ -1,7 +1,7 @@
 package br.com.cmachado.parkingsystem.application.webhook.impl;
 
-import br.com.cmachado.parkingsystem.application.revenue.RevenueApplicationService;
-import br.com.cmachado.parkingsystem.application.webhook.WebhookApplicationService;
+import br.com.cmachado.parkingsystem.application.revenue.RevenueService;
+import br.com.cmachado.parkingsystem.application.webhook.ParkingSessionService;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
@@ -38,13 +38,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-class WebhookApplicationServiceTest {
+class ParkingSessionServiceTest {
 
     @Autowired
-    private WebhookApplicationService webhookService;
+    private ParkingSessionService webhookService;
 
     @Autowired
-    private RevenueApplicationService revenueService;
+    private RevenueService revenueService;
 
     @Autowired
     private SectorRepository sectorRepository;
@@ -94,6 +94,8 @@ class WebhookApplicationServiceTest {
         WebhookEventRequest parkReq = new WebhookEventRequest();
         parkReq.setLicensePlate(plate);
         parkReq.setEventType("PARKED");
+        parkReq.setLat(10.0);
+        parkReq.setLng(10.0);
         webhookService.processParked(parkReq);
 
         WebhookEventRequest exitReq = new WebhookEventRequest();
@@ -111,8 +113,8 @@ class WebhookApplicationServiceTest {
     @Test
     void testEntryRejectedWhenGarageFull() {
         // Fill both spots so the garage reaches 100% occupancy.
-        parkVehicle("AAA1111");
-        parkVehicle("BBB2222");
+        parkVehicle("AAA1111", 10.0, 10.0);
+        parkVehicle("BBB2222", 20.0, 20.0);
 
         long countBefore = sessionRepository.count();
 
@@ -128,7 +130,7 @@ class WebhookApplicationServiceTest {
         assertEquals(countBefore, sessionRepository.count(), "rejected entry must not be stored");
     }
 
-    private void parkVehicle(String plate) {
+    private void parkVehicle(String plate, double lat, double lng) {
         WebhookEventRequest entryReq = new WebhookEventRequest();
         entryReq.setLicensePlate(plate);
         entryReq.setEventType("ENTRY");
@@ -138,6 +140,8 @@ class WebhookApplicationServiceTest {
         WebhookEventRequest parkReq = new WebhookEventRequest();
         parkReq.setLicensePlate(plate);
         parkReq.setEventType("PARKED");
+        parkReq.setLat(lat);
+        parkReq.setLng(lng);
         webhookService.processParked(parkReq);
     }
 

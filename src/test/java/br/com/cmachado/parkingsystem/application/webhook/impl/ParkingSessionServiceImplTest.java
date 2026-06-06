@@ -10,7 +10,6 @@ import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
-import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotId;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.service.occupancy.OccupancyDomainService;
 import br.com.cmachado.parkingsystem.domain.service.pricing.DiscountPricingStrategy;
@@ -19,6 +18,8 @@ import br.com.cmachado.parkingsystem.domain.service.pricing.StandardPricingStrat
 import br.com.cmachado.parkingsystem.domain.service.pricing.Surcharge10PricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.Surcharge25PricingStrategy;
 import br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException;
+import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSessionNotFoundException;
+import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSpotNotFoundException;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,17 +36,15 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class WebhookApplicationServiceImplTest {
+class ParkingSessionServiceImplTest {
 
     @Mock
     private ParkingSessionRepository sessionRepository;
@@ -56,7 +55,7 @@ class WebhookApplicationServiceImplTest {
     @Mock
     private SectorRepository sectorRepository;
 
-    private WebhookApplicationServiceImpl service;
+    private ParkingSessionServiceImpl service;
 
     @BeforeEach
     void setUp() {
@@ -65,7 +64,7 @@ class WebhookApplicationServiceImplTest {
                 new StandardPricingStrategy(),
                 new Surcharge10PricingStrategy(),
                 new Surcharge25PricingStrategy());
-        service = new WebhookApplicationServiceImpl(
+        service = new ParkingSessionServiceImpl(
                 sessionRepository,
                 spotRepository,
                 sectorRepository,
@@ -76,8 +75,7 @@ class WebhookApplicationServiceImplTest {
 
     @Test
     void entryWhenGarageFullThrowsGarageFullException() {
-        when(spotRepository.count()).thenReturn(2L);
-        when(spotRepository.countByOccupiedTrue()).thenReturn(2L);
+        when(spotRepository.existsByOccupiedFalse()).thenReturn(false);
 
         assertThrows(GarageFullException.class,
                 () -> service.processEntry(entry("FULL123", LocalDateTime.parse("2025-01-01T10:00:00"))));
@@ -87,8 +85,7 @@ class WebhookApplicationServiceImplTest {
 
     @Test
     void entryWhenGarageHasCapacityStoresSession() {
-        when(spotRepository.count()).thenReturn(2L);
-        when(spotRepository.countByOccupiedTrue()).thenReturn(1L);
+        when(spotRepository.existsByOccupiedFalse()).thenReturn(true);
 
         service.processEntry(entry("OPEN123", LocalDateTime.parse("2025-01-01T10:00:00")));
 
@@ -96,65 +93,37 @@ class WebhookApplicationServiceImplTest {
     }
 
     @Test
-    void parkedUsesOpenSectorSpotsFirst() {
-        ParkingSession session = entered("CAR0001");
-        ParkingSpot openSpot = spot(1L, "OPEN", 10.0, 10.0);
-        ParkingSpot closedSpot = spot(2L, "CLOSED", 0.0, 0.0);
-        Sector openSector = sector("OPEN", LocalTime.MIDNIGHT, LocalTime.of(23, 59));
-        Sector closedSector = sector("CLOSED", LocalTime.of(0, 0), LocalTime.of(0, 1));
+    void parkedThrowsWhenSessionNotFound() {
+        when(sessionRepository.findByLicensePlateAndStatusIn(any(), any())).thenReturn(Optional.empty());
 
-        when(sessionRepository.findByLicensePlateAndStatusIn(LicensePlate.of("CAR0001"), List.of(ParkingSessionStatus.ENTERED)))
-                .thenReturn(Optional.of(session));
-        when(sectorRepository.findAll()).thenReturn(List.of(openSector, closedSector));
-        when(spotRepository.findByOccupiedFalseAndSectorCodeIn(anyCollection()))
-                .thenReturn(List.of(openSpot));
-
-        service.processParked(parked("CAR0001", 0.0, 0.0));
-
-        assertEquals(openSpot.getId(), session.getSpotId());
-        assertEquals(SectorCode.of("OPEN"), session.getSectorCode());
-        assertTrue(openSpot.isOccupied());
-        assertFalse(closedSpot.isOccupied());
-        verify(spotRepository).save(openSpot);
-        verify(sessionRepository).save(session);
+        assertThrows(ParkingSessionNotFoundException.class,
+                () -> service.processParked(parked("NOPE01", 10.0, 10.0)));
     }
 
     @Test
-    void parkedFallsBackToFreeSpotsWhenNoSectorsAreOpen() {
+    void parkedThrowsWhenSpotNotFound() {
         ParkingSession session = entered("CAR0002");
-        ParkingSpot fallbackSpot = spot(1L, "CLOSED", 10.0, 10.0);
-        Sector closedSector = sector("CLOSED", LocalTime.of(0, 0), LocalTime.of(0, 1));
-
         when(sessionRepository.findByLicensePlateAndStatusIn(LicensePlate.of("CAR0002"), List.of(ParkingSessionStatus.ENTERED)))
                 .thenReturn(Optional.of(session));
-        when(sectorRepository.findAll()).thenReturn(List.of(closedSector));
-        when(spotRepository.findByOccupiedFalse()).thenReturn(List.of(fallbackSpot));
+        when(spotRepository.findByLocation(any())).thenReturn(Optional.empty());
 
-        service.processParked(parked("CAR0002", 10.0, 10.0));
-
-        assertEquals(fallbackSpot.getId(), session.getSpotId());
-        assertTrue(fallbackSpot.isOccupied());
-        verify(spotRepository).save(fallbackSpot);
+        assertThrows(ParkingSpotNotFoundException.class,
+                () -> service.processParked(parked("CAR0002", 10.0, 10.0)));
     }
 
     @Test
-    void parkedRecordsSessionWithoutSpotWhenNoSpotsExist() {
-        ParkingSession session = entered("CAR0003");
-        Sector openSector = sector("OPEN", LocalTime.MIDNIGHT, LocalTime.of(23, 59));
-
-        when(sessionRepository.findByLicensePlateAndStatusIn(LicensePlate.of("CAR0003"), List.of(ParkingSessionStatus.ENTERED)))
+    void parkedSavesSessionAndSpot() {
+        ParkingSession session = entered("CAR0001");
+        ParkingSpot parkSpot = spot(1L, "A", 10.0, 10.0);
+        when(sessionRepository.findByLicensePlateAndStatusIn(LicensePlate.of("CAR0001"), List.of(ParkingSessionStatus.ENTERED)))
                 .thenReturn(Optional.of(session));
-        when(sectorRepository.findAll()).thenReturn(List.of(openSector));
-        when(spotRepository.findByOccupiedFalseAndSectorCodeIn(anyCollection()))
-                .thenReturn(List.of());
-        when(spotRepository.findAll()).thenReturn(List.of());
+        when(spotRepository.findByLocation(GeoLocation.of(10.0, 10.0))).thenReturn(Optional.of(parkSpot));
 
-        service.processParked(parked("CAR0003", null, null));
+        service.processParked(parked("CAR0001", 10.0, 10.0));
 
         assertEquals(ParkingSessionStatus.PARKED, session.getStatus());
-        assertNull(session.getSpotId());
-        assertNull(session.getSectorCode());
-        verify(spotRepository, never()).save(any(ParkingSpot.class));
+        assertTrue(parkSpot.isOccupied());
+        verify(spotRepository).save(parkSpot);
         verify(sessionRepository).save(session);
     }
 
@@ -174,41 +143,40 @@ class WebhookApplicationServiceImplTest {
     }
 
     @Test
-    void exitWithMissingSpotChargesZeroAndDoesNotCrash() {
-        ParkingSession session = parkedSession("EXIT002", ParkingSpotId.generate(), SectorCode.of("A"));
+    void exitThrowsWhenSpotNotFound() {
+        ParkingSpot theSpot = spot(1L, "A", 10.0, 10.0);
+        ParkingSession session = parkedSession("EXIT002", theSpot);
         when(sessionRepository.findByLicensePlateAndStatusIn(
                 LicensePlate.of("EXIT002"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
         when(spotRepository.findById(session.getSpotId())).thenReturn(Optional.empty());
 
-        service.processExit(exit("EXIT002", LocalDateTime.parse("2025-01-01T12:00:00")));
-
-        assertEquals(ParkingSessionStatus.EXITED, session.getStatus());
-        assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount());
-        verify(sessionRepository).save(session);
+        assertThrows(ParkingSpotNotFoundException.class,
+                () -> service.processExit(exit("EXIT002", LocalDateTime.parse("2025-01-01T12:00:00"))));
     }
 
     @Test
     void exitWithMissingSectorChargesZeroAndReleasesSpot() {
-        ParkingSpot spot = spot(1L, "A", 10.0, 10.0);
-        spot.occupy();
-        ParkingSession session = parkedSession("EXIT003", spot.getId(), SectorCode.of("A"));
+        ParkingSpot theSpot = spot(1L, "A", 10.0, 10.0);
+        ParkingSession session = parkedSession("EXIT003", theSpot);
         when(sessionRepository.findByLicensePlateAndStatusIn(
                 LicensePlate.of("EXIT003"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
-        when(spotRepository.findById(spot.getId())).thenReturn(Optional.of(spot));
+        when(spotRepository.findById(theSpot.getId())).thenReturn(Optional.of(theSpot));
         when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.empty());
-        when(sessionRepository.existsBySpotIdAndStatusAndIdNot(spot.getId(), ParkingSessionStatus.PARKED, session.getId()))
+        when(sessionRepository.existsBySpotIdAndStatusAndIdNot(theSpot.getId(), ParkingSessionStatus.PARKED, session.getId()))
                 .thenReturn(false);
 
         service.processExit(exit("EXIT003", LocalDateTime.parse("2025-01-01T12:00:00")));
 
         assertEquals(ParkingSessionStatus.EXITED, session.getStatus());
         assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount());
-        assertFalse(spot.isOccupied());
-        verify(spotRepository).save(spot);
+        assertFalse(theSpot.isOccupied());
+        verify(spotRepository).save(theSpot);
         verify(sessionRepository).save(session);
     }
+
+    // ── helpers ──────────────────────────────────────────────────────────────
 
     private WebhookEventRequest entry(String plate, LocalDateTime entryTime) {
         WebhookEventRequest request = new WebhookEventRequest();
@@ -239,9 +207,9 @@ class WebhookApplicationServiceImplTest {
         return ParkingSession.enter(LicensePlate.of(plate), LocalDateTime.parse("2025-01-01T10:00:00"));
     }
 
-    private ParkingSession parkedSession(String plate, ParkingSpotId spotId, SectorCode sectorCode) {
+    private ParkingSession parkedSession(String plate, ParkingSpot parkingSpot) {
         ParkingSession session = entered(plate);
-        session.park(spotId, sectorCode, LocalDateTime.parse("2025-01-01T10:05:00"));
+        parkingSpot.park(session);
         return session;
     }
 

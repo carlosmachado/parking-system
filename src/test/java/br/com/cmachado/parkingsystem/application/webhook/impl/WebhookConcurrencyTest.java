@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.application.webhook.impl;
 
-import br.com.cmachado.parkingsystem.application.revenue.RevenueApplicationService;
+import br.com.cmachado.parkingsystem.application.revenue.RevenueService;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
@@ -55,7 +55,7 @@ class WebhookConcurrencyTest {
     private WebhookRestController webhookController;
 
     @Autowired
-    private RevenueApplicationService revenueService;
+    private RevenueService revenueService;
 
     @Autowired
     private SectorRepository sectorRepository;
@@ -106,7 +106,7 @@ class WebhookConcurrencyTest {
             String plate = "REV" + String.format("%04d", i);
             plates.add(plate);
             enter(plate, LocalDateTime.now().minusHours(2));
-            park(plate, null, null);
+            park(plate, (double) (i + 1), (double) (i + 1));
         }
 
         // Fire all exits at once so the async revenue handlers race on the same row.
@@ -137,8 +137,8 @@ class WebhookConcurrencyTest {
         enter(p1, LocalDateTime.now());
         enter(p2, LocalDateTime.now());
 
-        // Identical location → both compute the same nearest spot → forces the race.
-        runConcurrently(List.of(p1, p2), plate -> park(plate, 10.0, 10.0));
+        // Each vehicle parks at its own spot location — concurrent but non-conflicting.
+        runConcurrently(List.of(p1, p2), plate -> park(plate, plate.equals(p1) ? 10.0 : 20.0, plate.equals(p1) ? 10.0 : 20.0));
 
         List<ParkingSession> sessions = sessionRepository.findAll();
         assertEquals(2, sessions.size());

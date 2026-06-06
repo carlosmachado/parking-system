@@ -1,5 +1,9 @@
 package br.com.cmachado.parkingsystem.domain.model.spot;
 
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.CantParkSessionException;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSpotOccupiedException;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.spot.events.ParkingSpotRegistered;
 import br.com.cmachado.parkingsystem.domain.model.spot.events.SpotOccupied;
@@ -22,8 +26,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * Aggregate root representing a physical parking spot within a sector. The simulator's
- * original spot number is stored as {@code externalId}; occupancy is toggled via
- * {@link #occupy()} and {@link #release()}.
+ * original spot number is stored as {@code externalId};
  */
 @Entity
 @Table(name = "parking_spot",
@@ -76,7 +79,9 @@ public class ParkingSpot extends AggregateRootBase<ParkingSpot> {
         this.location = location;
     }
 
-    public void occupy() {
+    public void park(ParkingSession session) {
+        validateSessionStatus(session);
+        session.parkOn(this);
         this.occupied = true;
         registerEvent(new SpotOccupied(this));
     }
@@ -102,5 +107,10 @@ public class ParkingSpot extends AggregateRootBase<ParkingSpot> {
     @Override
     public int hashCode() {
         return id != null ? id.hashCode() : 0;
+    }
+
+    private void validateSessionStatus(ParkingSession session) {
+        if (session.getStatus() != ParkingSessionStatus.ENTERED)
+            throw new CantParkSessionException("Session must be in ENTERED status to park");
     }
 }

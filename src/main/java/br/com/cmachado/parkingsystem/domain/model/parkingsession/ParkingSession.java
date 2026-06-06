@@ -2,6 +2,7 @@ package br.com.cmachado.parkingsystem.domain.model.parkingsession;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotId;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleEntered;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleExited;
@@ -92,20 +93,21 @@ public class ParkingSession extends AggregateRootBase<ParkingSession> {
         return new ParkingSession(plate, entryTime);
     }
 
-    /**
-     * Assigns a spot and moves the session to {@code PARKED}.
-     *
-     * @throws IllegalStateException if the session is not in {@code ENTERED} status
-     */
-    public void park(ParkingSpotId spotId, SectorCode sectorCode, LocalDateTime parkedTime) {
-        if (this.status != ParkingSessionStatus.ENTERED) {
-            throw new IllegalStateException("Session must be in ENTERED status to park");
-        }
-        this.spotId = spotId;
-        this.sectorCode = sectorCode;
-        this.parkedTime = parkedTime;
+    public void parkOn(ParkingSpot parkingSpot) {
+        if (this.status != ParkingSessionStatus.ENTERED)
+            throw new CantParkSessionException("Session must be in ENTERED status to park");
+
+        validateOccupied(parkingSpot);
+        this.spotId = parkingSpot.getId();
+        this.sectorCode = parkingSpot.getSectorCode();
+        this.parkedTime = LocalDateTime.now();
         this.status = ParkingSessionStatus.PARKED;
         registerEvent(new VehicleParked(this));
+    }
+
+    private void validateOccupied(ParkingSpot parkingSpot) {
+        if (parkingSpot.isOccupied())
+            throw new ParkingSpotOccupiedException("Parking spot is already occupied");
     }
 
     /**

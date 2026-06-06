@@ -1,5 +1,7 @@
 package br.com.cmachado.parkingsystem.infrastructure.http;
 
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.CantParkSessionException;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSpotOccupiedException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,16 @@ public class CustomGlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiError> handleIllegalStateException(IllegalStateException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(CantParkSessionException.class)
+    public ResponseEntity<ApiError> handleCantParkSessionException(CantParkSessionException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(ParkingSpotOccupiedException.class)
+    public ResponseEntity<ApiError> handleParkingSpotOccupiedException(ParkingSpotOccupiedException ex, HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
     }
 
