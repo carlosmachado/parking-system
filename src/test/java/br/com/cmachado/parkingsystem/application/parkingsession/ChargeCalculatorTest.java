@@ -1,12 +1,8 @@
 package br.com.cmachado.parkingsystem.application.parkingsession;
 
-import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
-import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
-import br.com.cmachado.parkingsystem.domain.model.parkingspot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
@@ -15,6 +11,9 @@ import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStra
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.StandardPricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.Surcharge10PricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.Surcharge25PricingStrategy;
+import br.com.cmachado.parkingsystem.fixtures.ParkingSessionFixture;
+import br.com.cmachado.parkingsystem.fixtures.ParkingSpotFixture;
+import br.com.cmachado.parkingsystem.fixtures.SectorFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,7 +35,6 @@ class ChargeCalculatorTest {
 
     private ChargeCalculator calculator;
 
-    private static final LocalDateTime ENTRY = LocalDateTime.parse("2025-01-01T10:00:00");
     private static final LocalDateTime EXIT_2H = LocalDateTime.parse("2025-01-01T12:00:00");
     private static final LocalDateTime EXIT_20M = LocalDateTime.parse("2025-01-01T10:20:00");
 
@@ -52,111 +49,117 @@ class ChargeCalculatorTest {
     }
 
     @Test
-    void sectorCodePresentUsesItBasePrice() {
-        ParkingSpot parkSpot = spot("A");
-        ParkingSession session = parkedSession("CAR001", parkSpot);
-        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.of(sector("A", "10.00")));
+    void sectorCodePresentUsesItsBasePrice() {
+        // arrange
+        ParkingSession session = parkedSessionInSector("A");
+        when(sectorRepository.findByCode(SectorCode.of("A")))
+                .thenReturn(Optional.of(SectorFixture.aSector().withCode("A").withBasePrice("10.00").build()));
         when(spotRepository.findOccupancyRate()).thenReturn(0.5); // < 0.75 → +10% surcharge
 
+        // act
         calculator.charge(session, EXIT_2H);
 
-        // 2h * 10.00 * 1.10 = 22.00
-        assertEquals(new BigDecimal("22.00"), session.getAmountCharged().getAmount());
+        // assert — 2h * 10.00 * 1.10
+        assertEquals(new BigDecimal("22.00"), session.getAmountCharged().getAmount(),
+                "2h at base 10.00 with 10% surcharge");
     }
 
     @Test
     void sectorCodeNullUsesMinBasePrice() {
-        ParkingSession session = entered("CAR002");
+        // arrange — entered (never parked) session has no sector code
+        ParkingSession session = ParkingSessionFixture.aSession().withPlate("CAR002").build();
         when(sectorRepository.findMinBasePrice()).thenReturn(Optional.of(new BigDecimal("5.00")));
         when(spotRepository.findOccupancyRate()).thenReturn(0.0); // < 0.25 → 10% discount
 
+        // act
         calculator.charge(session, EXIT_2H);
 
-        // 2h * 5.00 * 0.90 = 9.00
-        assertEquals(new BigDecimal("9.00"), session.getAmountCharged().getAmount());
+        // assert — 2h * 5.00 * 0.90
+        assertEquals(new BigDecimal("9.00"), session.getAmountCharged().getAmount(),
+                "2h at min base 5.00 with 10% discount");
     }
 
     @Test
     void sectorCodeNotFoundFallsBackToMinBasePrice() {
-        ParkingSpot parkSpot = spot("MISSING");
-        ParkingSession session = parkedSession("CAR003", parkSpot);
+        // arrange
+        ParkingSession session = parkedSessionInSector("MISSING");
         when(sectorRepository.findByCode(SectorCode.of("MISSING"))).thenReturn(Optional.empty());
         when(sectorRepository.findMinBasePrice()).thenReturn(Optional.of(new BigDecimal("8.00")));
         when(spotRepository.findOccupancyRate()).thenReturn(0.3); // < 0.50 → standard
 
+        // act
         calculator.charge(session, EXIT_2H);
 
-        // 2h * 8.00 * 1.0 = 16.00
-        assertEquals(new BigDecimal("16.00"), session.getAmountCharged().getAmount());
+        // assert — 2h * 8.00 * 1.0
+        assertEquals(new BigDecimal("16.00"), session.getAmountCharged().getAmount(),
+                "2h at fallback min base 8.00 standard rate");
     }
 
     @Test
     void noSectorsAtAllChargesZero() {
-        ParkingSession session = entered("CAR004");
+        // arrange
+        ParkingSession session = ParkingSessionFixture.aSession().withPlate("CAR004").build();
         when(sectorRepository.findMinBasePrice()).thenReturn(Optional.empty());
         when(spotRepository.findOccupancyRate()).thenReturn(null);
 
+        // act
         calculator.charge(session, EXIT_2H);
 
-        assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount());
+        // assert
+        assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount(),
+                "no sector data must charge zero");
     }
 
     @Test
     void occupancyRateAboveOneIsCapped() {
-        ParkingSpot parkSpot = spot("A");
-        ParkingSession session = parkedSession("CAR006", parkSpot);
-        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.of(sector("A", "10.00")));
+        // arrange
+        ParkingSession session = parkedSessionInSector("A");
+        when(sectorRepository.findByCode(SectorCode.of("A")))
+                .thenReturn(Optional.of(SectorFixture.aSector().withCode("A").withBasePrice("10.00").build()));
         when(spotRepository.findOccupancyRate()).thenReturn(1.5);
 
+        // act
         calculator.charge(session, EXIT_2H);
 
-        // 2h * 10.00 * 1.25 = 25.00
-        assertEquals(new BigDecimal("25.00"), session.getAmountCharged().getAmount());
+        // assert — rate capped at 1.0 → 25% surcharge: 2h * 10.00 * 1.25
+        assertEquals(new BigDecimal("25.00"), session.getAmountCharged().getAmount(),
+                "occupancy above 1.0 must cap at the 25% surcharge tier");
     }
 
     @Test
     void negativeOccupancyRateIsFloored() {
-        ParkingSpot parkSpot = spot("A");
-        ParkingSession session = parkedSession("CAR007", parkSpot);
-        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.of(sector("A", "10.00")));
+        // arrange
+        ParkingSession session = parkedSessionInSector("A");
+        when(sectorRepository.findByCode(SectorCode.of("A")))
+                .thenReturn(Optional.of(SectorFixture.aSector().withCode("A").withBasePrice("10.00").build()));
         when(spotRepository.findOccupancyRate()).thenReturn(-0.5);
 
+        // act
         calculator.charge(session, EXIT_2H);
 
-        // 2h * 10.00 * 0.90 = 18.00
-        assertEquals(new BigDecimal("18.00"), session.getAmountCharged().getAmount());
+        // assert — rate floored at 0.0 → 10% discount: 2h * 10.00 * 0.90
+        assertEquals(new BigDecimal("18.00"), session.getAmountCharged().getAmount(),
+                "negative occupancy must floor at the discount tier");
     }
 
     @Test
     void withinThirtyMinutesChargesZero() {
-        ParkingSpot parkSpot = spot("A");
-        ParkingSession session = parkedSession("CAR005", parkSpot);
-        when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.of(sector("A", "10.00")));
+        // arrange
+        ParkingSession session = parkedSessionInSector("A");
+        when(sectorRepository.findByCode(SectorCode.of("A")))
+                .thenReturn(Optional.of(SectorFixture.aSector().withCode("A").withBasePrice("10.00").build()));
         when(spotRepository.findOccupancyRate()).thenReturn(0.5);
 
+        // act
         calculator.charge(session, EXIT_20M);
 
-        assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount());
+        // assert
+        assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount(),
+                "first 30 minutes are free");
     }
 
-    // ── helpers ──────────────────────────────────────────────────────────────
-
-    private ParkingSession entered(String plate) {
-        return ParkingSession.enter(LicensePlate.of(plate), ENTRY);
-    }
-
-    private ParkingSession parkedSession(String plate, ParkingSpot parkingSpot) {
-        ParkingSession session = entered(plate);
-        parkingSpot.park(session);
-        return session;
-    }
-
-    private ParkingSpot spot(String sectorCode) {
-        return ParkingSpot.register(1L, SectorCode.of(sectorCode), GeoLocation.of(10.0, 10.0));
-    }
-
-    private Sector sector(String code, String basePrice) {
-        return Sector.register(SectorCode.of(code), Money.of(basePrice), 10,
-                LocalTime.MIDNIGHT, LocalTime.of(23, 59), 1440);
+    private ParkingSession parkedSessionInSector(String sectorCode) {
+        ParkingSpot spot = ParkingSpotFixture.aSpot().withSector(sectorCode).build();
+        return ParkingSessionFixture.aSession().parkedOn(spot).build();
     }
 }

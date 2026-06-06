@@ -1,19 +1,17 @@
 package br.com.cmachado.parkingsystem.application.parkingsession.impl;
 
 import br.com.cmachado.parkingsystem.application.revenue.RevenueService;
-import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenueRepository;
-import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
-import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
-import br.com.cmachado.parkingsystem.domain.model.parkingspot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
+import br.com.cmachado.parkingsystem.fixtures.ParkingSpotFixture;
+import br.com.cmachado.parkingsystem.fixtures.SectorFixture;
+import br.com.cmachado.parkingsystem.fixtures.WebhookEventFixture;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.revenue.RevenueResponse;
-import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookRestController;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +26,6 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -71,11 +68,9 @@ class WebhookPerformanceTest {
     @BeforeEach
     void setUp() {
         cleanAll();
-        SectorCode code = SectorCode.of(SECTOR);
-        sectorRepository.save(Sector.register(code, Money.of(10.0), VEHICLES,
-                LocalTime.MIDNIGHT, LocalTime.of(23, 59), 1440));
+        sectorRepository.save(SectorFixture.aSector().withCode(SECTOR).withCapacity(VEHICLES).build());
         for (int i = 1; i <= VEHICLES; i++) {
-            spotRepository.save(ParkingSpot.register((long) i, code, GeoLocation.of(i, i)));
+            spotRepository.save(ParkingSpotFixture.aSpot().withExternalId(i).withSector(SECTOR).withLocation(i, i).build());
         }
     }
 
@@ -93,13 +88,13 @@ class WebhookPerformanceTest {
 
     @Test
     void sustainsThroughputAndStaysConsistentUnderLoad() throws Exception {
+        // arrange
         List<Integer> indices = new ArrayList<>();
         for (int i = 0; i < VEHICLES; i++) indices.add(i);
-
         AtomicLong elapsedNanos = new AtomicLong();
         long start = System.nanoTime();
 
-        // Each vehicle runs its full lifecycle on its own spot, all in parallel.
+        // act — each vehicle runs its full lifecycle on its own spot, all in parallel
         runConcurrently(indices, i -> {
             String plate = "PERF" + String.format("%04d", i);
             double coord = i + 1;
@@ -107,7 +102,6 @@ class WebhookPerformanceTest {
             park(plate, coord, coord);
             exit(plate, LocalDateTime.now());
         });
-
         elapsedNanos.set(System.nanoTime() - start);
 
         double seconds = elapsedNanos.get() / 1_000_000_000.0;
@@ -115,7 +109,7 @@ class WebhookPerformanceTest {
         logger.info("Processed {} lifecycles in {} ms → {} lifecycles/s",
                 VEHICLES, String.format("%.1f", seconds * 1000), String.format("%.1f", throughput));
 
-        // Integrity: all sessions exited, all spots released.
+        // assert — all sessions exited, all spots released
         List<ParkingSession> sessions = sessionRepository.findAll();
         assertEquals(VEHICLES, sessions.size(), "every vehicle must have a session");
         assertTrue(sessions.stream().allMatch(s -> s.getStatus() == ParkingSessionStatus.EXITED),
@@ -137,28 +131,15 @@ class WebhookPerformanceTest {
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private void enter(String plate, LocalDateTime entryTime) {
-        WebhookEventRequest req = new WebhookEventRequest();
-        req.setLicensePlate(plate);
-        req.setEventType("ENTRY");
-        req.setEntryTime(entryTime.toString());
-        webhookController.handleEvent(req);
+        webhookController.handleEvent(WebhookEventFixture.anEntry().withPlate(plate).at(entryTime).build());
     }
 
     private void park(String plate, Double lat, Double lng) {
-        WebhookEventRequest req = new WebhookEventRequest();
-        req.setLicensePlate(plate);
-        req.setEventType("PARKED");
-        req.setLat(lat);
-        req.setLng(lng);
-        webhookController.handleEvent(req);
+        webhookController.handleEvent(WebhookEventFixture.aParked().withPlate(plate).atLocation(lat, lng).build());
     }
 
     private void exit(String plate, LocalDateTime exitTime) {
-        WebhookEventRequest req = new WebhookEventRequest();
-        req.setLicensePlate(plate);
-        req.setEventType("EXIT");
-        req.setExitTime(exitTime.toString());
-        webhookController.handleEvent(req);
+        webhookController.handleEvent(WebhookEventFixture.anExit().withPlate(plate).at(exitTime).build());
     }
 
     /** Runs the action for every input simultaneously and rethrows the first failure. */

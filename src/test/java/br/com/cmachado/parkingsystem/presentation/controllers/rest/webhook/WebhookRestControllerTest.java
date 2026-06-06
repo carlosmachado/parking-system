@@ -22,6 +22,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(WebhookRestController.class)
 class WebhookRestControllerTest {
 
+    private static final String ENTRY_BODY = """
+            {"license_plate":"ZUL0001","entry_time":"2025-01-01T12:00:00.000Z","event_type":"ENTRY"}
+            """;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -30,37 +34,34 @@ class WebhookRestControllerTest {
 
     @Test
     void eventReturns200AndDelegates() throws Exception {
-        String body = """
-                {"license_plate":"ZUL0001","entry_time":"2025-01-01T12:00:00.000Z","event_type":"ENTRY"}
-                """;
-
-        mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(body))
+        // act
+        mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(ENTRY_BODY))
                 .andExpect(status().isOk());
 
+        // assert
         verify(webhookService).handle(any());
     }
 
     @Test
     void serviceThrowsBadRequestReturns400() throws Exception {
+        // arrange
         doThrow(new BadRequestException("event_type is required")).when(webhookService).handle(any());
-
         String body = """
                 {"license_plate":"ZUL0001"}
                 """;
 
+        // act / assert
         mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void entryWhenGarageFullReturns409WithErrorCode() throws Exception {
+        // arrange
         doThrow(new GarageFullException(LicensePlate.of("ZUL0001"))).when(webhookService).handle(any());
 
-        String body = """
-                {"license_plate":"ZUL0001","entry_time":"2025-01-01T12:00:00.000Z","event_type":"ENTRY"}
-                """;
-
-        mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(body))
+        // act / assert
+        mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(ENTRY_BODY))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("EST-001"))
                 .andExpect(jsonPath("$.message", startsWith("Garage is full")));

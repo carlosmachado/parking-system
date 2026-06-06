@@ -1,19 +1,17 @@
 package br.com.cmachado.parkingsystem.application.parkingsession.impl;
 
 import br.com.cmachado.parkingsystem.application.revenue.RevenueService;
-import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
-import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenueRepository;
-import br.com.cmachado.parkingsystem.domain.model.parkingspot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
+import br.com.cmachado.parkingsystem.fixtures.ParkingSpotFixture;
+import br.com.cmachado.parkingsystem.fixtures.SectorFixture;
+import br.com.cmachado.parkingsystem.fixtures.WebhookEventFixture;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.revenue.RevenueResponse;
-import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookRestController;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +24,6 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -93,14 +90,12 @@ class WebhookConcurrencyTest {
      */
     @Test
     void concurrentExitsDoNotLoseRevenue() throws Exception {
-        SectorCode code = SectorCode.of(SECTOR);
-        sectorRepository.save(Sector.register(code, Money.of(10.0), 20,
-                LocalTime.MIDNIGHT, LocalTime.of(23, 59), 1440));
+        // arrange — 10 vehicles parked across 10 spots in one sector
         int n = 10;
+        sectorRepository.save(SectorFixture.aSector().withCode(SECTOR).withCapacity(20).build());
         for (int i = 1; i <= n; i++) {
-            spotRepository.save(ParkingSpot.register((long) i, code, GeoLocation.of(i, i)));
+            spotRepository.save(ParkingSpotFixture.aSpot().withExternalId(i).withSector(SECTOR).withLocation(i, i).build());
         }
-
         List<String> plates = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             String plate = "REV" + String.format("%04d", i);
@@ -109,12 +104,12 @@ class WebhookConcurrencyTest {
             park(plate, (double) (i + 1), (double) (i + 1));
         }
 
-        // Fire all exits at once so the async revenue handlers race on the same row.
+        // act — fire all exits at once so the async revenue handlers race on the same row
         runConcurrently(plates, plate -> exit(plate, LocalDateTime.now()));
 
+        // assert
         BigDecimal expected = sumChargedAmounts();
         assertTrue(expected.signum() > 0, "test setup should produce a positive charge");
-
         BigDecimal actual = awaitRevenue(SECTOR, expected);
         assertEquals(expected, actual, "daily revenue must equal the sum of all charges");
     }
@@ -126,22 +121,21 @@ class WebhookConcurrencyTest {
      */
     @Test
     void concurrentParkedAssignsDistinctSpots() throws Exception {
-        SectorCode code = SectorCode.of(SECTOR);
-        sectorRepository.save(Sector.register(code, Money.of(10.0), 10,
-                LocalTime.MIDNIGHT, LocalTime.of(23, 59), 1440));
-        spotRepository.save(ParkingSpot.register(1L, code, GeoLocation.of(10.0, 10.0)));
-        spotRepository.save(ParkingSpot.register(2L, code, GeoLocation.of(20.0, 20.0)));
-
+        // arrange — two free spots, two entered vehicles
+        sectorRepository.save(SectorFixture.aSector().withCode(SECTOR).build());
+        spotRepository.save(ParkingSpotFixture.aSpot().withExternalId(1L).withSector(SECTOR).withLocation(10.0, 10.0).build());
+        spotRepository.save(ParkingSpotFixture.aSpot().withExternalId(2L).withSector(SECTOR).withLocation(20.0, 20.0).build());
         String p1 = "PRK0001";
         String p2 = "PRK0002";
         enter(p1, LocalDateTime.now());
         enter(p2, LocalDateTime.now());
 
-        // Each vehicle parks at its own spot location — concurrent but non-conflicting.
+        // act — each vehicle parks at its own spot location, concurrently
         runConcurrently(List.of(p1, p2), plate -> park(plate, plate.equals(p1) ? 10.0 : 20.0, plate.equals(p1) ? 10.0 : 20.0));
 
+        // assert
         List<ParkingSession> sessions = sessionRepository.findAll();
-        assertEquals(2, sessions.size());
+        assertEquals(2, sessions.size(), "both vehicles must have a session");
         assertTrue(sessions.stream().allMatch(s -> s.getStatus() == ParkingSessionStatus.PARKED),
                 "both vehicles must be parked");
         assertNotEquals(sessions.get(0).getSpotId(), sessions.get(1).getSpotId(),
@@ -149,34 +143,21 @@ class WebhookConcurrencyTest {
         long occupiedSpots = spotRepository.findAll().stream()
                 .filter(ParkingSpot::isOccupied)
                 .count();
-        assertEquals(2, occupiedSpots);
+        assertEquals(2, occupiedSpots, "exactly two spots must be occupied");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private void enter(String plate, LocalDateTime entryTime) {
-        WebhookEventRequest req = new WebhookEventRequest();
-        req.setLicensePlate(plate);
-        req.setEventType("ENTRY");
-        req.setEntryTime(entryTime.toString());
-        webhookController.handleEvent(req);
+        webhookController.handleEvent(WebhookEventFixture.anEntry().withPlate(plate).at(entryTime).build());
     }
 
     private void park(String plate, Double lat, Double lng) {
-        WebhookEventRequest req = new WebhookEventRequest();
-        req.setLicensePlate(plate);
-        req.setEventType("PARKED");
-        req.setLat(lat);
-        req.setLng(lng);
-        webhookController.handleEvent(req);
+        webhookController.handleEvent(WebhookEventFixture.aParked().withPlate(plate).atLocation(lat, lng).build());
     }
 
     private void exit(String plate, LocalDateTime exitTime) {
-        WebhookEventRequest req = new WebhookEventRequest();
-        req.setLicensePlate(plate);
-        req.setEventType("EXIT");
-        req.setExitTime(exitTime.toString());
-        webhookController.handleEvent(req);
+        webhookController.handleEvent(WebhookEventFixture.anExit().withPlate(plate).at(exitTime).build());
     }
 
     /** Runs the action for every input simultaneously and rethrows the first failure. */

@@ -1,17 +1,14 @@
 package br.com.cmachado.parkingsystem.domain.model.parkingspot;
 
-import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
-import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
-import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
-import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
+import br.com.cmachado.parkingsystem.fixtures.ParkingSessionFixture;
+import br.com.cmachado.parkingsystem.fixtures.ParkingSpotFixture;
+import br.com.cmachado.parkingsystem.fixtures.SectorFixture;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,59 +28,54 @@ class ParkingSpotRepositoryTest {
 
     @Test
     void availableSpotInOpenSectorExists() {
-        SectorCode code = SectorCode.of("SEC-A");
-        sectorRepository.save(openSector(code));
-        spotRepository.save(ParkingSpot.register(1L, code, GeoLocation.of(10.0, 10.0)));
+        // arrange
+        sectorRepository.save(SectorFixture.aSector().withCode("SEC-A").withHours(LocalTime.of(8, 0), LocalTime.of(18, 0)).build());
+        spotRepository.save(ParkingSpotFixture.aSpot().withSector("SEC-A").build());
 
+        // act
         boolean exists = spotRepository.existsAvailableSpotInOpenSector(NOON);
 
-        assertTrue(exists);
+        // assert
+        assertTrue(exists, "a free spot in an open sector must be found");
     }
 
     @Test
     void freeSpotOnlyInClosedSectorDoesNotExist() {
-        SectorCode code = SectorCode.of("SEC-B");
-        sectorRepository.save(closedSector(code));
-        spotRepository.save(ParkingSpot.register(1L, code, GeoLocation.of(10.0, 10.0)));
+        // arrange — sector open 00:00–01:00 only, closed at noon
+        sectorRepository.save(SectorFixture.aSector().withCode("SEC-B").withHours(LocalTime.of(0, 0), LocalTime.of(1, 0)).build());
+        spotRepository.save(ParkingSpotFixture.aSpot().withSector("SEC-B").build());
 
+        // act
         boolean exists = spotRepository.existsAvailableSpotInOpenSector(NOON);
 
-        assertFalse(exists);
+        // assert
+        assertFalse(exists, "a free spot in a closed sector must not count as available");
     }
 
     @Test
     void availableSpotInWrapAroundSectorOpenLateNightExists() {
-        // Sector open 22:00 → 06:00 (wraps past midnight); NOON is outside, 23:00 is inside.
-        SectorCode code = SectorCode.of("SEC-W");
-        sectorRepository.save(Sector.register(code, Money.of(10.0), 10,
-                LocalTime.of(22, 0), LocalTime.of(6, 0), 1440));
-        spotRepository.save(ParkingSpot.register(1L, code, GeoLocation.of(10.0, 10.0)));
+        // arrange — sector open 22:00 → 06:00 wraps past midnight
+        sectorRepository.save(SectorFixture.aSector().withCode("SEC-W").withHours(LocalTime.of(22, 0), LocalTime.of(6, 0)).build());
+        spotRepository.save(ParkingSpotFixture.aSpot().withSector("SEC-W").build());
 
-        assertFalse(spotRepository.existsAvailableSpotInOpenSector(NOON));
-        assertTrue(spotRepository.existsAvailableSpotInOpenSector(LocalTime.of(23, 0)));
-        assertTrue(spotRepository.existsAvailableSpotInOpenSector(LocalTime.of(2, 0)));
+        // act / assert
+        assertFalse(spotRepository.existsAvailableSpotInOpenSector(NOON), "noon is outside the wrapped window");
+        assertTrue(spotRepository.existsAvailableSpotInOpenSector(LocalTime.of(23, 0)), "23:00 is inside the wrapped window");
+        assertTrue(spotRepository.existsAvailableSpotInOpenSector(LocalTime.of(2, 0)), "02:00 is inside the wrapped window");
     }
 
     @Test
     void occupiedSpotInOpenSectorDoesNotExist() {
-        SectorCode code = SectorCode.of("SEC-C");
-        sectorRepository.save(openSector(code));
-        ParkingSpot spot = ParkingSpot.register(1L, code, GeoLocation.of(10.0, 10.0));
-        spot.park(ParkingSession.enter(LicensePlate.of("ABC1234"), LocalDateTime.now()));
+        // arrange — the only spot in the open sector is occupied
+        sectorRepository.save(SectorFixture.aSector().withCode("SEC-C").withHours(LocalTime.of(8, 0), LocalTime.of(18, 0)).build());
+        ParkingSpot spot = ParkingSpotFixture.aSpot().withSector("SEC-C").build();
+        spot.park(ParkingSessionFixture.aSession().build());
         spotRepository.save(spot);
 
+        // act
         boolean exists = spotRepository.existsAvailableSpotInOpenSector(NOON);
 
-        assertFalse(exists);
-    }
-
-    private Sector openSector(SectorCode code) {
-        return Sector.register(code, Money.of(10.0), 10,
-                LocalTime.of(8, 0), LocalTime.of(18, 0), 1440);
-    }
-
-    private Sector closedSector(SectorCode code) {
-        return Sector.register(code, Money.of(10.0), 10,
-                LocalTime.of(0, 0), LocalTime.of(1, 0), 1440);
+        // assert
+        assertFalse(exists, "an occupied spot must not count as available");
     }
 }

@@ -18,75 +18,87 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RevenueServiceImplTest {
 
+    private static final LocalDate DATE = LocalDate.parse("2025-01-01");
+
     @Mock
     private DailyRevenueRepository dailyRevenueRepository;
 
     @Test
     void returnsZeroWhenSectorHasNoRevenueForDate() {
-        LocalDate date = LocalDate.parse("2025-01-01");
-        when(dailyRevenueRepository.findBySectorCodeAndDate(SectorCode.of("A"), date))
+        // arrange
+        when(dailyRevenueRepository.findBySectorCodeAndDate(SectorCode.of("A"), DATE))
                 .thenReturn(Optional.empty());
 
-        RevenueResponse response = service().getRevenue(date, "A");
+        // act
+        RevenueResponse response = service().getRevenue(DATE, "A");
 
-        assertEquals(BigDecimal.ZERO, response.getAmount());
-        assertEquals("BRL", response.getCurrency());
-        assertNotNull(response.getTimestamp());
+        // assert
+        assertEquals(BigDecimal.ZERO, response.getAmount(), "no revenue row must report zero");
+        assertEquals("BRL", response.getCurrency(), "currency");
+        assertNotNull(response.getTimestamp(), "timestamp must be set");
     }
 
     @Test
     void returnsRevenueForSectorAndDate() {
-        LocalDate date = LocalDate.parse("2025-01-01");
-        DailyRevenue revenue = revenue("A", date, "42.50");
-        when(dailyRevenueRepository.findBySectorCodeAndDate(SectorCode.of("A"), date))
-                .thenReturn(Optional.of(revenue));
+        // arrange
+        when(dailyRevenueRepository.findBySectorCodeAndDate(SectorCode.of("A"), DATE))
+                .thenReturn(Optional.of(revenue("A", DATE, "42.50")));
 
-        RevenueResponse response = service().getRevenue(date, "A");
+        // act
+        RevenueResponse response = service().getRevenue(DATE, "A");
 
-        assertEquals(new BigDecimal("42.50"), response.getAmount());
-        assertEquals("BRL", response.getCurrency());
+        // assert
+        assertEquals(new BigDecimal("42.50"), response.getAmount(), "stored amount for the sector/date");
+        assertEquals("BRL", response.getCurrency(), "currency");
     }
 
     @Test
     void aggregatesAllSectorsForDate() {
-        LocalDate date = LocalDate.parse("2025-01-01");
-        when(dailyRevenueRepository.findByDate(date))
-                .thenReturn(List.of(revenue("A", date, "10.00"), revenue("B", date, "15.75")));
+        // arrange
+        when(dailyRevenueRepository.findByDate(DATE))
+                .thenReturn(List.of(revenue("A", DATE, "10.00"), revenue("B", DATE, "15.75")));
 
-        RevenueResponse response = service().getRevenueAllSectors(date);
+        // act
+        RevenueResponse response = service().getRevenueAllSectors(DATE);
 
-        assertEquals(new BigDecimal("25.75"), response.getAmount());
-        assertEquals("BRL", response.getCurrency());
+        // assert
+        assertEquals(new BigDecimal("25.75"), response.getAmount(), "sum across all sectors");
+        assertEquals("BRL", response.getCurrency(), "currency");
     }
 
     @Test
     void returnsZeroWhenNoSectorsHaveRevenueForDate() {
-        LocalDate date = LocalDate.parse("2025-01-01");
-        when(dailyRevenueRepository.findByDate(date)).thenReturn(List.of());
+        // arrange
+        when(dailyRevenueRepository.findByDate(DATE)).thenReturn(List.of());
 
-        RevenueResponse response = service().getRevenueAllSectors(date);
+        // act
+        RevenueResponse response = service().getRevenueAllSectors(DATE);
 
-        assertEquals(BigDecimal.ZERO, response.getAmount());
-        assertEquals("BRL", response.getCurrency());
+        // assert
+        assertEquals(BigDecimal.ZERO, response.getAmount(), "no rows must aggregate to zero");
+        assertEquals("BRL", response.getCurrency(), "currency");
     }
 
     @Test
     void convertsSectorParameterToValueObject() {
-        LocalDate date = LocalDate.parse("2025-01-01");
-        when(dailyRevenueRepository.findBySectorCodeAndDate(SectorCode.of("SEC-A"), date))
+        // arrange
+        when(dailyRevenueRepository.findBySectorCodeAndDate(SectorCode.of("SEC-A"), DATE))
                 .thenReturn(Optional.empty());
 
-        service().getRevenue(date, "SEC-A");
+        // act
+        service().getRevenue(DATE, "SEC-A");
 
+        // assert
         ArgumentCaptor<SectorCode> sectorCaptor = ArgumentCaptor.forClass(SectorCode.class);
-        verify(dailyRevenueRepository).findBySectorCodeAndDate(sectorCaptor.capture(), org.mockito.ArgumentMatchers.eq(date));
-        assertEquals(SectorCode.of("SEC-A"), sectorCaptor.getValue());
+        verify(dailyRevenueRepository).findBySectorCodeAndDate(sectorCaptor.capture(), eq(DATE));
+        assertEquals(SectorCode.of("SEC-A"), sectorCaptor.getValue(), "sector string must map to a SectorCode");
     }
 
     private RevenueServiceImpl service() {
