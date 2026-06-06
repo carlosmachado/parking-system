@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.model.spot;
+package br.com.cmachado.parkingsystem.domain.model.parkingspot;
 
 import br.com.cmachado.parkingsystem.domain.shared.ValueObject;
 import com.github.f4b6a3.ulid.UlidCreator;

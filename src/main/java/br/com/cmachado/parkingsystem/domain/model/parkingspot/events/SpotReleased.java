@@ -1,6 +1,6 @@
-package br.com.cmachado.parkingsystem.domain.model.spot.events;
+package br.com.cmachado.parkingsystem.domain.model.parkingspot.events;
 
-import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.shared.DomainEvent;
 import lombok.Getter;
 

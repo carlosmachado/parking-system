@@ -7,7 +7,7 @@ import br.com.cmachado.parkingsystem.domain.model.sector.OccupancyRate;
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
-import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyFactory;
 import br.com.cmachado.parkingsystem.domain.shared.DomainService;

@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.model.spot;
+package br.com.cmachado.parkingsystem.domain.model.parkingspot;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;

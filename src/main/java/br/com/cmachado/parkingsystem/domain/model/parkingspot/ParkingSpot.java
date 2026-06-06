@@ -1,12 +1,12 @@
-package br.com.cmachado.parkingsystem.domain.model.spot;
+package br.com.cmachado.parkingsystem.domain.model.parkingspot;
 
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.CantParkSessionException;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
-import br.com.cmachado.parkingsystem.domain.model.spot.events.ParkingSpotRegistered;
-import br.com.cmachado.parkingsystem.domain.model.spot.events.SpotOccupied;
-import br.com.cmachado.parkingsystem.domain.model.spot.events.SpotReleased;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.ParkingSpotRegistered;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.SpotOccupied;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.SpotReleased;
 import br.com.cmachado.parkingsystem.domain.shared.AggregateRootBase;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;

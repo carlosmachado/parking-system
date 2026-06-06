@@ -2,8 +2,8 @@ package br.com.cmachado.parkingsystem.domain.model.parkingsession;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
-import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
-import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotId;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotId;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleEntered;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleExited;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleParked;
