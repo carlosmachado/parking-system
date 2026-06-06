@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface ParkingSpotRepository extends JpaRepository<ParkingSpot, ParkingSpotId> {
     long countByOccupiedTrue();
     boolean existsByOccupiedFalse();
+    boolean existsByOccupiedFalseAndSectorCodeIn(Collection<SectorCode> sectorCodes);
     List<ParkingSpot> findByOccupiedFalse();
     List<ParkingSpot> findBySectorCodeAndOccupiedFalse(SectorCode sectorCode);
     List<ParkingSpot> findByOccupiedFalseAndSectorCodeIn(Collection<SectorCode> sectorCodes);

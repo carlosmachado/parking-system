@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -116,7 +117,8 @@ class ParkingSessionServiceImplTest {
 
     @Test
     void entryWhenGarageFullThrowsGarageFullException() {
-        when(spotRepository.existsByOccupiedFalse()).thenReturn(false);
+        when(sectorRepository.findAll()).thenReturn(List.of(sector("A", LocalTime.MIDNIGHT, LocalTime.of(23, 59))));
+        when(spotRepository.existsByOccupiedFalseAndSectorCodeIn(anyCollection())).thenReturn(false);
 
         assertThrows(GarageFullException.class,
                 () -> service.handle(entry("FULL123", LocalDateTime.parse("2025-01-01T10:00:00"))));
@@ -125,8 +127,19 @@ class ParkingSessionServiceImplTest {
     }
 
     @Test
+    void entryRejectedWhenAllSectorsClosed() {
+        when(sectorRepository.findAll()).thenReturn(List.of(sector("A", LocalTime.of(0, 0), LocalTime.of(0, 1))));
+
+        assertThrows(GarageFullException.class,
+                () -> service.handle(entry("CLOSED1", LocalDateTime.parse("2025-01-01T10:00:00"))));
+
+        verify(sessionRepository, never()).save(any());
+    }
+
+    @Test
     void entryWhenGarageHasCapacityStoresSession() {
-        when(spotRepository.existsByOccupiedFalse()).thenReturn(true);
+        when(sectorRepository.findAll()).thenReturn(List.of(sector("A", LocalTime.MIDNIGHT, LocalTime.of(23, 59))));
+        when(spotRepository.existsByOccupiedFalseAndSectorCodeIn(anyCollection())).thenReturn(true);
 
         service.handle(entry("OPEN123", LocalDateTime.parse("2025-01-01T10:00:00")));
 

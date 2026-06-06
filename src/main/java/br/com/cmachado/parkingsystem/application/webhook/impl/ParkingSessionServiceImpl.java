@@ -31,8 +31,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Orchestrates the vehicle lifecycle driven by simulator webhook events.
@@ -102,13 +106,22 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
         var licensePlate = LicensePlate.of(request.getLicensePlate());
         var entryTime = LocalDateTime.parse(request.getEntryTime(), FORMATTER);
 
-        if (!parkingSpotRepository.existsByOccupiedFalse()) {
+        if (!hasAvailableSpotInOpenSector()) {
             garageFullCounter.increment();
-            logger.warn("Entry rejected — garage at capacity: plate={}", licensePlate);
+            logger.warn("Entry rejected — garage at capacity or all sectors closed: plate={}", licensePlate);
             throw new GarageFullException(licensePlate);
         }
 
         sessionRepository.save(ParkingSession.enter(licensePlate, entryTime));
+    }
+
+    private boolean hasAvailableSpotInOpenSector() {
+        LocalTime now = LocalTime.now();
+        Set<SectorCode> openCodes = sectorRepository.findAll().stream()
+                .filter(s -> s.isOpen(now))
+                .map(Sector::getCode)
+                .collect(Collectors.toSet());
+        return !openCodes.isEmpty() && parkingSpotRepository.existsByOccupiedFalseAndSectorCodeIn(openCodes);
     }
 
     private void processParked(WebhookEventRequest request) {
