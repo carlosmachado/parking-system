@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook;
 
-import br.com.cmachado.parkingsystem.application.webhook.ParkingSessionService;
+import br.com.cmachado.parkingsystem.application.parkingsession.ParkingSessionService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.PostMapping;

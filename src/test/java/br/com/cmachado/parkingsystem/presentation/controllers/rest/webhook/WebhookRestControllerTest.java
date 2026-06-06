@@ -1,9 +1,9 @@
 package br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook;
 
-import br.com.cmachado.parkingsystem.application.webhook.ParkingSessionService;
+import br.com.cmachado.parkingsystem.application.parkingsession.ParkingSessionService;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.infrastructure.http.BadRequestException;
-import br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException;
+import br.com.cmachado.parkingsystem.domain.model.spot.GarageFullException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -63,6 +63,6 @@ class WebhookRestControllerTest {
         mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("EST-001"))
-                .andExpect(jsonPath("$.message", startsWith("Parking is full")));
+                .andExpect(jsonPath("$.message", startsWith("Garage is full")));
     }
 }

@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.application.webhook;
+package br.com.cmachado.parkingsystem.application.parkingsession;
 
 import br.com.cmachado.parkingsystem.domain.shared.ApplicationService;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;

@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.application.webhook.impl;
+package br.com.cmachado.parkingsystem.application.parkingsession.impl;
 
 import br.com.cmachado.parkingsystem.application.revenue.RevenueService;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;

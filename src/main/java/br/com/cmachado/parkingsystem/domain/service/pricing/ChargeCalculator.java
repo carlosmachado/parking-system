@@ -10,6 +10,7 @@ import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyFactory;
+import br.com.cmachado.parkingsystem.domain.shared.DomainService;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -17,6 +18,7 @@ import java.util.Comparator;
 import java.util.Optional;
 
 @Component
+@DomainService
 public class ChargeCalculator {
 
     private final SectorRepository sectorRepository;
@@ -43,7 +45,7 @@ public class ChargeCalculator {
         Period period = session.getPeriod().end(exitTime);
 
         var amountCharged = strategy.calculate(period, basePrice);
-        
+
         session.exit(exitTime, amountCharged);
     }
 

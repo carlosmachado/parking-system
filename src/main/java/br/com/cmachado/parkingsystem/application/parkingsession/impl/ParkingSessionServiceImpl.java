@@ -1,8 +1,7 @@
-package br.com.cmachado.parkingsystem.application.webhook.impl;
+package br.com.cmachado.parkingsystem.application.parkingsession.impl;
 
 import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
-import br.com.cmachado.parkingsystem.application.webhook.ParkingSessionService;
-import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
+import br.com.cmachado.parkingsystem.application.parkingsession.ParkingSessionService;
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
@@ -15,9 +14,9 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
 import br.com.cmachado.parkingsystem.infrastructure.http.BadRequestException;
-import br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException;
-import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSessionNotFoundException;
-import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSpotNotFoundException;
+import br.com.cmachado.parkingsystem.domain.model.spot.GarageFullException;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionNotFoundException;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotNotFoundException;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -97,7 +96,8 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
             throw new GarageFullException(licensePlate);
         }
 
-        sessionRepository.save(ParkingSession.enter(licensePlate, entryTime));
+        var session = ParkingSession.enter(licensePlate, entryTime);
+        sessionRepository.save(session);
     }
 
     private boolean hasAvailableSpotInOpenSector() {

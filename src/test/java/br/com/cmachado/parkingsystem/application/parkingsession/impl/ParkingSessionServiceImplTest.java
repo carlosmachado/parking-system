@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.application.webhook.impl;
+package br.com.cmachado.parkingsystem.application.parkingsession.impl;
 
 import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
@@ -13,9 +13,9 @@ import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.infrastructure.http.BadRequestException;
-import br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException;
-import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSessionNotFoundException;
-import br.com.cmachado.parkingsystem.infrastructure.http.ParkingSpotNotFoundException;
+import br.com.cmachado.parkingsystem.domain.model.spot.GarageFullException;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionNotFoundException;
+import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotNotFoundException;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;

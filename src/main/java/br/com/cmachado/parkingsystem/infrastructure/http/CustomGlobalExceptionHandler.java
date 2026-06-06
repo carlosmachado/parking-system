@@ -2,6 +2,7 @@ package br.com.cmachado.parkingsystem.infrastructure.http;
 
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.CantParkSessionException;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSpotOccupiedException;
+import br.com.cmachado.parkingsystem.domain.model.spot.GarageFullException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

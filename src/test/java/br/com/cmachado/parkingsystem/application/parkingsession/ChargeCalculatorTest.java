@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.application.webhook;
+package br.com.cmachado.parkingsystem.application.parkingsession;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;

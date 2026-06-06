@@ -1,12 +1,13 @@
-package br.com.cmachado.parkingsystem.application.webhook.impl;
+package br.com.cmachado.parkingsystem.application.parkingsession.impl;
 
 import br.com.cmachado.parkingsystem.application.revenue.RevenueService;
-import br.com.cmachado.parkingsystem.application.webhook.ParkingSessionService;
+import br.com.cmachado.parkingsystem.application.parkingsession.ParkingSessionService;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenueRepository;
+import br.com.cmachado.parkingsystem.domain.model.spot.GarageFullException;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
@@ -124,7 +125,7 @@ class ParkingSessionServiceTest {
         entryReq.setEntryTime(LocalDateTime.now().toString());
 
         assertThrows(
-                br.com.cmachado.parkingsystem.infrastructure.http.GarageFullException.class,
+                GarageFullException.class,
                 () -> webhookService.handle(entryReq));
 
         assertEquals(countBefore, sessionRepository.count(), "rejected entry must not be stored");
