@@ -3,7 +3,7 @@ package br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook;
 import br.com.cmachado.parkingsystem.application.parkingsession.ParkingSessionService;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.infrastructure.http.BadRequestException;
-import br.com.cmachado.parkingsystem.domain.model.parkingspot.GarageFullException;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.GarageFullException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

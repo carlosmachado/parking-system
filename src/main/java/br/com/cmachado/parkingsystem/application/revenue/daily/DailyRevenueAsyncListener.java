@@ -75,7 +75,7 @@ public class DailyRevenueAsyncListener {
                     if (attempt >= MAX_ATTEMPTS) {
                         throw ex;
                     }
-                    Thread.sleep(50L * attempt); // 50ms, 100ms, 150ms, 200ms
+                    Thread.sleep(50L * attempt);
                 }
             }
         } catch (InterruptedException ex) {

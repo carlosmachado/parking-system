@@ -7,6 +7,6 @@ import org.springframework.stereotype.Component;
 public class StandardPricingStrategy extends BasePricingStrategy {
     @Override
     protected Money applyMultiplier(Money baseAmount) {
-        return baseAmount; // No multiplier
+        return baseAmount;
     }
 }

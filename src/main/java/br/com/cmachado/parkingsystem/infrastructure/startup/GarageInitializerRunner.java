@@ -51,7 +51,6 @@ public class GarageInitializerRunner implements ApplicationRunner {
             return;
         }
 
-        // Register the webhook so the simulator knows where to send events.
         String webhookUrl = "http://" + webhookHost + ":" + serverPort + "/webhook";
         simulatorClient.registerWebhook(webhookUrl);
     }

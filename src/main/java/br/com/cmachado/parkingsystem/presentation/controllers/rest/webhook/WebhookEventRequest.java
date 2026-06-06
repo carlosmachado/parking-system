@@ -16,7 +16,10 @@ public class WebhookEventRequest {
     
     @JsonProperty("exit_time")
     private String exitTime;
-    
+
+    @JsonProperty("lat")
     private Double lat;
+
+    @JsonProperty("lng")
     private Double lng;
 }

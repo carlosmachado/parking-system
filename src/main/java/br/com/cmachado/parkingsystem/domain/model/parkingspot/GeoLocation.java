@@ -39,10 +39,9 @@ public class GeoLocation implements ValueObject<GeoLocation> {
         return new GeoLocation(lat, lng);
     }
 
+    /** Euclidean distance to another location; sufficient for relative distance within a small garage. */
     public double calculateDistance(GeoLocation other) {
         if (other == null) return Double.MAX_VALUE;
-        // Simple Euclidean distance or Haversine formula
-        // Since garages are small, Euclidean is usually sufficient for relative distance
         double latDiff = this.lat - other.lat;
         double lngDiff = this.lng - other.lng;
         return Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);

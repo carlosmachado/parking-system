@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.model.parkingsession;
+package br.com.cmachado.parkingsystem.domain.model.parkingsession.violations;
 
 public class CantParkSessionException extends RuntimeException {
     public CantParkSessionException(String message) {

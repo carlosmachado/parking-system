@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.model.parkingsession;
+package br.com.cmachado.parkingsystem.domain.model.parkingsession.violations;
 
 import br.com.cmachado.parkingsystem.infrastructure.http.NotFoundException;
 

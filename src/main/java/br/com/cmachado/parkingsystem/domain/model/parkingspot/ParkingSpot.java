@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.domain.model.parkingspot;
 
-import br.com.cmachado.parkingsystem.domain.model.parkingsession.CantParkSessionException;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.CantParkSessionException;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;

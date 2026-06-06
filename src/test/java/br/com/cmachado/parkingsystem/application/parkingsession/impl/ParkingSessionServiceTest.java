@@ -7,7 +7,7 @@ import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenueRepository;
-import br.com.cmachado.parkingsystem.domain.model.parkingspot.GarageFullException;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.GarageFullException;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;

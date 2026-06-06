@@ -43,7 +43,6 @@ public class RevenueRestController {
             return ResponseEntity.ok(response);
         }
 
-        // No sector specified → aggregate all sectors for the day
         RevenueResponse response = revenueService.getRevenueAllSectors(targetDate);
         return ResponseEntity.ok(response);
     }
