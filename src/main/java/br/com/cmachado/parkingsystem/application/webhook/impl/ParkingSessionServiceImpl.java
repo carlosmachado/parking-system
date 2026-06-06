@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.application.webhook.impl;
 
-import br.com.cmachado.parkingsystem.application.webhook.ChargeCalculator;
+import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
 import br.com.cmachado.parkingsystem.application.webhook.ParkingSessionService;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
@@ -101,11 +101,14 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
     }
 
     private boolean hasAvailableSpotInOpenSector() {
-        LocalTime now = LocalTime.now();
+        var now = LocalTime.now();
+
+        //todo move to query would improve performance, even better if is just one query joining sector and spot
         Set<SectorCode> openCodes = sectorRepository.findAll().stream()
                 .filter(s -> s.isOpen(now))
                 .map(Sector::getCode)
                 .collect(Collectors.toSet());
+
         return !openCodes.isEmpty() && parkingSpotRepository.existsByOccupiedFalseAndSectorCodeIn(openCodes);
     }
 
@@ -141,8 +144,7 @@ public class ParkingSessionServiceImpl implements ParkingSessionService {
             parkingSpotRepository.save(spot);
         }
 
-        Money amountCharged = chargeCalculator.calculate(session, exitTime);
-        session.exit(exitTime, amountCharged);
+        chargeCalculator.charge(session, exitTime);
         sessionRepository.save(session);
     }
 }

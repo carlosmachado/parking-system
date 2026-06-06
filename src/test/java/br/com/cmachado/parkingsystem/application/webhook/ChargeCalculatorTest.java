@@ -9,11 +9,12 @@ import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.spot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.spot.ParkingSpotRepository;
-import br.com.cmachado.parkingsystem.domain.service.pricing.DiscountPricingStrategy;
-import br.com.cmachado.parkingsystem.domain.service.pricing.PricingStrategyFactory;
-import br.com.cmachado.parkingsystem.domain.service.pricing.StandardPricingStrategy;
-import br.com.cmachado.parkingsystem.domain.service.pricing.Surcharge10PricingStrategy;
-import br.com.cmachado.parkingsystem.domain.service.pricing.Surcharge25PricingStrategy;
+import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.DiscountPricingStrategy;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyFactory;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.StandardPricingStrategy;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.Surcharge10PricingStrategy;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.Surcharge25PricingStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,7 +28,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,31 +54,29 @@ class ChargeCalculatorTest {
 
     @Test
     void sectorCodePresentUsesItBasePrice() {
-        // parked session: sectorCode = "A", base price 10.00
         ParkingSpot parkSpot = spot("A");
         ParkingSession session = parkedSession("CAR001", parkSpot);
         when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.of(sector("A", "10.00")));
         when(spotRepository.findOccupancyRate()).thenReturn(0.5); // < 0.75 → +10% surcharge
 
-        Money charge = calculator.calculate(session, EXIT_2H);
+        calculator.charge(session, EXIT_2H);
 
         // 2h * 10.00 * 1.10 = 22.00
-        assertEquals(new BigDecimal("22.00"), charge.getAmount());
+        assertEquals(new BigDecimal("22.00"), session.getAmountCharged().getAmount());
     }
 
     @Test
     void sectorCodeNullUsesMinBasePrice() {
-        // entered session (never parked): no sectorCode
         ParkingSession session = entered("CAR002");
         when(sectorRepository.findAll()).thenReturn(List.of(
                 sector("B", "20.00"),
                 sector("A", "5.00")));
         when(spotRepository.findOccupancyRate()).thenReturn(0.0); // < 0.25 → 10% discount
 
-        Money charge = calculator.calculate(session, EXIT_2H);
+        calculator.charge(session, EXIT_2H);
 
         // 2h * 5.00 * 0.90 = 9.00
-        assertEquals(new BigDecimal("9.00"), charge.getAmount());
+        assertEquals(new BigDecimal("9.00"), session.getAmountCharged().getAmount());
     }
 
     @Test
@@ -89,10 +87,10 @@ class ChargeCalculatorTest {
         when(sectorRepository.findAll()).thenReturn(List.of(sector("A", "8.00"), sector("B", "12.00")));
         when(spotRepository.findOccupancyRate()).thenReturn(0.3); // < 0.50 → standard
 
-        Money charge = calculator.calculate(session, EXIT_2H);
+        calculator.charge(session, EXIT_2H);
 
         // 2h * 8.00 * 1.0 = 16.00
-        assertEquals(new BigDecimal("16.00"), charge.getAmount());
+        assertEquals(new BigDecimal("16.00"), session.getAmountCharged().getAmount());
     }
 
     @Test
@@ -101,9 +99,9 @@ class ChargeCalculatorTest {
         when(sectorRepository.findAll()).thenReturn(List.of());
         when(spotRepository.findOccupancyRate()).thenReturn(null);
 
-        Money charge = calculator.calculate(session, EXIT_2H);
+        calculator.charge(session, EXIT_2H);
 
-        assertEquals(BigDecimal.ZERO.setScale(2), charge.getAmount());
+        assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount());
     }
 
     @Test
@@ -113,9 +111,9 @@ class ChargeCalculatorTest {
         when(sectorRepository.findByCode(SectorCode.of("A"))).thenReturn(Optional.of(sector("A", "10.00")));
         when(spotRepository.findOccupancyRate()).thenReturn(0.5);
 
-        Money charge = calculator.calculate(session, EXIT_20M);
+        calculator.charge(session, EXIT_20M);
 
-        assertEquals(BigDecimal.ZERO.setScale(2), charge.getAmount());
+        assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

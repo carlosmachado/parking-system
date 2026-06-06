@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.application.webhook.impl;
 
-import br.com.cmachado.parkingsystem.application.webhook.ChargeCalculator;
+import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
@@ -24,7 +24,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -37,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -177,17 +177,20 @@ class ParkingSessionServiceImplTest {
     // ── EXIT ──────────────────────────────────────────────────────────────────
 
     @Test
-    void exitFromEnteredSessionChargesZero() {
+    void exitFromEnteredSessionCallsChargeAndSavesSession() {
         ParkingSession session = entered("EXIT001");
         when(sessionRepository.findByLicensePlateAndStatusIn(
                 LicensePlate.of("EXIT001"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
-        when(chargeCalculator.calculate(eq(session), any())).thenReturn(Money.ZERO);
+        doAnswer(inv -> {
+            ((ParkingSession) inv.getArgument(0)).exit(inv.getArgument(1), Money.ZERO);
+            return null;
+        }).when(chargeCalculator).charge(any(ParkingSession.class), any(LocalDateTime.class));
 
         service.handle(exit("EXIT001", LocalDateTime.parse("2025-01-01T11:00:00")));
 
         assertEquals(ParkingSessionStatus.EXITED, session.getStatus());
-        assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount());
+        verify(chargeCalculator).charge(eq(session), any(LocalDateTime.class));
         verify(sessionRepository).save(session);
         verify(spotRepository, never()).save(any(ParkingSpot.class));
     }
@@ -213,13 +216,16 @@ class ParkingSessionServiceImplTest {
                 LicensePlate.of("EXIT003"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
         when(spotRepository.findById(theSpot.getId())).thenReturn(Optional.of(theSpot));
-        when(chargeCalculator.calculate(eq(session), any())).thenReturn(Money.of("15.00"));
+        doAnswer(inv -> {
+            ((ParkingSession) inv.getArgument(0)).exit(inv.getArgument(1), Money.of("15.00"));
+            return null;
+        }).when(chargeCalculator).charge(any(ParkingSession.class), any(LocalDateTime.class));
 
         service.handle(exit("EXIT003", LocalDateTime.parse("2025-01-01T12:00:00")));
 
         assertEquals(ParkingSessionStatus.EXITED, session.getStatus());
         assertFalse(theSpot.isOccupied());
-        assertEquals(new BigDecimal("15.00"), session.getAmountCharged().getAmount());
+        verify(chargeCalculator).charge(eq(session), any(LocalDateTime.class));
         verify(spotRepository).save(theSpot);
         verify(sessionRepository).save(session);
     }

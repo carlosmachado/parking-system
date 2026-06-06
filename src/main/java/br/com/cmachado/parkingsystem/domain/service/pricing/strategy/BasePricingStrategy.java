@@ -1,4 +1,4 @@
-package br.com.cmachado.parkingsystem.domain.service.pricing;
+package br.com.cmachado.parkingsystem.domain.service.pricing.strategy;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.Period;

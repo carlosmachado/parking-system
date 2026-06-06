@@ -1,12 +1,12 @@
-package br.com.cmachado.parkingsystem.domain.service.pricing;
+package br.com.cmachado.parkingsystem.domain.service.pricing.strategy;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DiscountPricingStrategy extends BasePricingStrategy {
+public class StandardPricingStrategy extends BasePricingStrategy {
     @Override
     protected Money applyMultiplier(Money baseAmount) {
-        return baseAmount.multiply(0.90);
+        return baseAmount; // No multiplier
     }
 }
