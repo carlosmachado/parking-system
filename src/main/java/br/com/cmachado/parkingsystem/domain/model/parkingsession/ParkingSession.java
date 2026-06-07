@@ -136,6 +136,8 @@ public class ParkingSession extends AggregateRootBase<ParkingSession> {
         }
 
         public ParkingSession build() {
+            if (election == PricingElection.AT_ENTRY && strategy == null)
+                throw new IllegalStateException("AT_ENTRY election requires a strategy to be provided");
             return new ParkingSession(plate, entryTime, election, strategy);
         }
     }

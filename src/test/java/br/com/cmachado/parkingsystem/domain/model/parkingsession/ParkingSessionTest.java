@@ -88,6 +88,16 @@ class ParkingSessionTest {
     }
 
     @Test
+    void buildRejectsAtEntryWithoutStrategy() {
+        // act / assert
+        assertThrows(IllegalStateException.class,
+                () -> ParkingSession.start(LicensePlate.of("BAD0001"), ENTRY)
+                        .charging(PricingElection.AT_ENTRY)
+                        .build(),
+                "AT_ENTRY without strategy must be rejected");
+    }
+
+    @Test
     void exitRejectsAlreadyExitedSession() {
         // arrange
         ParkingSession session = ParkingSessionFixture.aSession().enteredAt(ENTRY).build();

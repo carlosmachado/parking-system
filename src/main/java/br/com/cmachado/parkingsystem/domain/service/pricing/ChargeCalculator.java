@@ -58,7 +58,7 @@ public class ChargeCalculator {
      * present (no occupancy lookup); otherwise elects one from the current occupancy.
      */
     public void charge(ParkingSession session, LocalDateTime exitTime) {
-        PricingStrategyType type = session.getPricingStrategy() != null
+        PricingStrategyType type = session.getPricingElection() == PricingElection.AT_ENTRY
                 ? session.getPricingStrategy()
                 : pricingStrategyFactory.electType(resolveOccupancyRate());
 
