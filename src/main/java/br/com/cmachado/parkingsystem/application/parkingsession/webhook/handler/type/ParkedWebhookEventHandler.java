@@ -12,12 +12,16 @@ import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotId;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.ParkingSpotNotFoundException;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
 public class ParkedWebhookEventHandler extends BaseWebhookEventHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(ParkedWebhookEventHandler.class);
 
     private final ParkingSessionRepository sessionRepository;
     private final ParkingSpotRepository parkingSpotRepository;
@@ -60,10 +64,14 @@ public class ParkedWebhookEventHandler extends BaseWebhookEventHandler {
         parkingSpot.park(session);
         parkingSpotRepository.save(parkingSpot);
         sessionRepository.save(session);
+
+        logger.debug("PARKED processed: plate={} spotId={} location={}",
+                licensePlate, parkingSpot.getId(), location);
     }
 
     private void ignoreSameSpotReplayOrReject(ParkingSpotId currentSpotId, ParkingSpot requestedSpot) {
         if (requestedSpot.getId().equals(currentSpotId)) {
+            logger.debug("Duplicate PARKED ignored on same spot: spotId={}", currentSpotId);
             return;
         }
         throw new CantParkSessionException("Parking session is already parked on a different spot");

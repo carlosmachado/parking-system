@@ -59,6 +59,7 @@ public class DailyRevenueAsyncListener {
     public void handleVehicleExited(VehicleExited event) {
         var session = event.getSession();
         if (session.hasNoCharge()) {
+            logger.debug("Revenue update skipped — no charge: plate={}", session.getLicensePlate());
             return;
         }
 
@@ -74,6 +75,7 @@ public class DailyRevenueAsyncListener {
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 revenueUpdater.addRevenue(sectorCode, exitDate, amountCharged);
+                logger.debug("Revenue updated: sector={} date={} amount={}", sectorCode, exitDate, amountCharged);
                 return;
             } catch (Exception ex) {
                 lastFailure = ex;

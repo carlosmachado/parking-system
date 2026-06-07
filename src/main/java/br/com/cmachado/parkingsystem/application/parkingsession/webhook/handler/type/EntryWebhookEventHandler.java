@@ -74,6 +74,9 @@ public class EntryWebhookEventHandler extends BaseWebhookEventHandler {
                 .strategy(pricing.strategy())
                 .build();
         sessionRepository.save(session);
+
+        logger.debug("ENTRY processed: plate={} election={} strategy={}",
+                licensePlate, pricing.election(), pricing.strategy());
     }
 
     private boolean hasAvailableSpotInOpenSector(LocalDateTime entryTime) {

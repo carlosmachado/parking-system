@@ -12,6 +12,8 @@ import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotReposit
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.ParkingSpotNotFoundException;
 import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -19,6 +21,8 @@ import java.util.List;
 
 @Component
 public class ExitWebhookEventHandler extends BaseWebhookEventHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(ExitWebhookEventHandler.class);
 
     private final ParkingSessionRepository sessionRepository;
     private final ParkingSpotRepository parkingSpotRepository;
@@ -58,6 +62,9 @@ public class ExitWebhookEventHandler extends BaseWebhookEventHandler {
 
         chargeCalculator.charge(session, exitTime);
         sessionRepository.save(session);
+
+        logger.debug("EXIT processed: plate={} amount={} strategy={}",
+                licensePlate, session.getAmountCharged(), session.getPricingStrategy());
     }
 
     private void tryToReleaseSpot(ParkingSession session) {
@@ -66,5 +73,6 @@ public class ExitWebhookEventHandler extends BaseWebhookEventHandler {
                 .orElseThrow(() -> new ParkingSpotNotFoundException("No parking spot found for id %s".formatted(spotId)));
         spot.release();
         parkingSpotRepository.save(spot);
+        logger.debug("Spot released on exit: spotId={}", spotId);
     }
 }

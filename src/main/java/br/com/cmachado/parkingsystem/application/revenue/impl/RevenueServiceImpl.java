@@ -6,6 +6,8 @@ import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenue;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenueRepository;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.revenue.RevenueResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,8 @@ import java.time.LocalDateTime;
  */
 @Service
 public class RevenueServiceImpl implements RevenueService {
+
+    private static final Logger logger = LoggerFactory.getLogger(RevenueServiceImpl.class);
 
     private final DailyRevenueRepository dailyRevenueRepository;
 
@@ -34,6 +38,8 @@ public class RevenueServiceImpl implements RevenueService {
         var dailyRevenue = dailyRevenueRepository
                 .findBySectorCodeAndDate(sector, date);
 
+        logger.debug("Revenue query: sector={} date={} found={}", sectorCode, date, dailyRevenue.isPresent());
+
         return dailyRevenue
                 .map(revenue -> amountOf(revenue.getTotalAmount().getAmount()))
                 .orElseGet(this::amountOfZero);
@@ -44,6 +50,8 @@ public class RevenueServiceImpl implements RevenueService {
     public RevenueResponse getRevenueAllSectors(LocalDate date) {
 
         var revenues = dailyRevenueRepository.findByDate(date);
+
+        logger.debug("Revenue query (all sectors): date={} rows={}", date, revenues.size());
 
         if (revenues.isEmpty())
             return amountOfZero();
