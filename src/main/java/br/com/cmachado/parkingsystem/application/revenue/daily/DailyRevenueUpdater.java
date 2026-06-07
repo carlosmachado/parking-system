@@ -4,16 +4,18 @@ import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenue;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenueRepository;
+import com.github.f4b6a3.ulid.UlidCreator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.ByteBuffer;
 import java.time.LocalDate;
+import java.util.UUID;
 
 /**
- * Applies a single revenue increment in its own transaction. Kept separate from
- * {@link DailyRevenueAsyncListener} so the listener can wrap this call in a retry loop:
- * retrying must restart the whole transaction, which only works across a bean boundary.
+ * Applies a single revenue increment in its own transaction, isolated from the webhook request
+ * that triggered it.
  */
 @Service
 public class DailyRevenueUpdater {
@@ -26,21 +28,21 @@ public class DailyRevenueUpdater {
 
     /**
      * Adds {@code amount} to the sector's running total for {@code date}, creating the
-     * {@link DailyRevenue} record on first use. Runs in a new transaction so revenue
-     * bookkeeping is isolated from the webhook request that triggered it.
-     *
-     * <p>When the row exists it is taken under a pessimistic write lock, so concurrent exits
-     * serialize on the counter and no increment is lost. The first exit of the day inserts the
-     * row; if two exits race that insert, one hits the {@code (sector_code, date)} unique
-     * constraint and the caller retries — by then the row exists and takes the locked path.</p>
+     * {@link DailyRevenue} row on first use. Implemented as one atomic
+     * {@code INSERT … ON DUPLICATE KEY UPDATE}, so concurrent exits never lose an increment.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void addRevenue(SectorCode sectorCode, LocalDate date, Money amount) {
-        DailyRevenue dailyRevenue = dailyRevenueRepository
-                .findWithLockBySectorCodeAndDate(sectorCode, date)
-                .orElseGet(() -> new DailyRevenue(sectorCode, date));
+        dailyRevenueRepository.upsertAddRevenue(
+                newId(), sectorCode.getCode(), date, amount.getAmount());
+    }
 
-        dailyRevenue.addRevenue(amount);
-        dailyRevenueRepository.save(dailyRevenue);
+    /** New binary UUID for the insert branch, matching Hibernate's BINARY(16) layout (MSB then LSB). */
+    private static byte[] newId() {
+        UUID uuid = UlidCreator.getMonotonicUlid().toUuid();
+        return ByteBuffer.allocate(16)
+                .putLong(uuid.getMostSignificantBits())
+                .putLong(uuid.getLeastSignificantBits())
+                .array();
     }
 }

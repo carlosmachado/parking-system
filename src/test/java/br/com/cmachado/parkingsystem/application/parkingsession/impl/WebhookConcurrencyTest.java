@@ -115,6 +115,39 @@ class WebhookConcurrencyTest {
     }
 
     /**
+     * High-contention variant of the cold-start insert race: many vehicles all exit the same
+     * sector on the same day at once with no pre-existing {@code DailyRevenue} row, so the very
+     * first inserts race the {@code (sector_code, date)} unique constraint. The stored total must
+     * still equal the sum of every charge — no increment dropped.
+     */
+    @Test
+    void concurrentFirstExitsSameDayDoNotLoseRevenue() throws Exception {
+        // arrange — 16 vehicles parked across 16 spots, no revenue row yet
+        int n = 16;
+        sectorRepository.save(SectorFixture.aSector().withCode(SECTOR).withCapacity(n).build());
+        for (int i = 1; i <= n; i++) {
+            spotRepository.save(ParkingSpotFixture.aSpot().withExternalId(i).withSector(SECTOR).withLocation(i, i).build());
+        }
+        LocalDateTime exitTime = LocalDateTime.now();
+        List<String> plates = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            String plate = "HOT" + String.format("%04d", i);
+            plates.add(plate);
+            enter(plate, exitTime.minusHours(2));
+            park(plate, (double) (i + 1), (double) (i + 1));
+        }
+
+        // act — all exits fire at once at the same instant, hammering one (sector, date) row
+        runConcurrently(plates, plate -> exit(plate, exitTime));
+
+        // assert
+        BigDecimal expected = sumChargedAmounts();
+        assertTrue(expected.signum() > 0, "test setup should produce a positive charge");
+        BigDecimal actual = awaitRevenue(SECTOR, expected);
+        assertEquals(expected, actual, "daily revenue must equal the sum of all charges, none lost");
+    }
+
+    /**
      * Two PARKED events aimed at the same nearest spot race on {@code ParkingSpot.version}. The loser
      * is retried by the controller, re-reads, and takes the other spot — both vehicles end up
      * parked on distinct spots with no exception leaking.
