@@ -5,11 +5,11 @@ import br.com.cmachado.parkingsystem.domain.shared.DomainEvent;
 import lombok.Getter;
 
 @Getter
-public class SectorCreated extends DomainEvent {
+public class SectorRegistered extends DomainEvent {
 
     private final Sector sector;
 
-    public SectorCreated(Sector sector) {
+    public SectorRegistered(Sector sector) {
         super(sector);
         this.sector = sector;
     }

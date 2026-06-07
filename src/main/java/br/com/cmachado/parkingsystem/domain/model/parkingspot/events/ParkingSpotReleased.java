@@ -5,11 +5,11 @@ import br.com.cmachado.parkingsystem.domain.shared.DomainEvent;
 import lombok.Getter;
 
 @Getter
-public class SpotOccupied extends DomainEvent {
+public class ParkingSpotReleased extends DomainEvent {
 
     private final ParkingSpot spot;
 
-    public SpotOccupied(ParkingSpot spot) {
+    public ParkingSpotReleased(ParkingSpot spot) {
         super(spot);
         this.spot = spot;
     }

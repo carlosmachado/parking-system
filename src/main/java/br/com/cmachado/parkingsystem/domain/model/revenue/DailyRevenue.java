@@ -2,7 +2,7 @@ package br.com.cmachado.parkingsystem.domain.model.revenue;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
-import br.com.cmachado.parkingsystem.domain.model.revenue.events.DailyRevenueCreated;
+import br.com.cmachado.parkingsystem.domain.model.revenue.events.DailyRevenueInitiated;
 import br.com.cmachado.parkingsystem.domain.model.revenue.events.DailyRevenueUpdated;
 import br.com.cmachado.parkingsystem.domain.shared.AggregateRootBase;
 import jakarta.persistence.AttributeOverride;
@@ -67,7 +67,7 @@ public class DailyRevenue extends AggregateRootBase<DailyRevenue> {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public DailyRevenue(SectorCode sectorCode, LocalDate date) {
+    private DailyRevenue(SectorCode sectorCode, LocalDate date) {
         Objects.requireNonNull(sectorCode, "SectorCode cannot be null");
         Objects.requireNonNull(date, "Date cannot be null");
 
@@ -75,7 +75,11 @@ public class DailyRevenue extends AggregateRootBase<DailyRevenue> {
         this.sectorCode = sectorCode;
         this.date = date;
         this.totalAmount = Money.ZERO;
-        registerEvent(new DailyRevenueCreated(this));
+        registerEvent(new DailyRevenueInitiated(this));
+    }
+
+    public static DailyRevenue initiate(SectorCode sectorCode, LocalDate date){
+        return new DailyRevenue(sectorCode, date);
     }
 
     /** Adds the given amount to the running daily total. Null amounts are ignored. */

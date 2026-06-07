@@ -12,7 +12,7 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.Park
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
-import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.SpotOccupied;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.ParkingSpotOccupied;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.ParkingSpotNotFoundException;
 import br.com.cmachado.parkingsystem.fixtures.ParkingSessionFixture;
 import br.com.cmachado.parkingsystem.fixtures.ParkingSpotFixture;
@@ -98,7 +98,7 @@ class ParkedWebhookEventHandlerTest {
         assertEquals(ParkingSessionStatus.PARKED, session.getStatus(), "session must be PARKED");
         assertTrue(parkSpot.isOccupied(), "spot must be occupied");
         assertHasEvent(session, VehicleParked.class);
-        assertHasEvent(parkSpot, SpotOccupied.class);
+        assertHasEvent(parkSpot, ParkingSpotOccupied.class);
         verify(spotRepository).save(parkSpot);
         verify(sessionRepository).save(session);
     }

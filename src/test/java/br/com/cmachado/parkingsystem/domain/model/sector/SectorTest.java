@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.domain.model.sector;
 
-import br.com.cmachado.parkingsystem.domain.model.sector.events.SectorCreated;
+import br.com.cmachado.parkingsystem.domain.model.sector.events.SectorRegistered;
 import br.com.cmachado.parkingsystem.fixtures.SectorFixture;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +18,7 @@ class SectorTest {
         Sector sector = SectorFixture.aSector().withCode("A").build();
 
         // assert
-        assertHasEvent(sector, SectorCreated.class);
+        assertHasEvent(sector, SectorRegistered.class);
     }
 
     @Test

@@ -1,7 +1,7 @@
 package br.com.cmachado.parkingsystem.domain.model.sector;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
-import br.com.cmachado.parkingsystem.domain.model.sector.events.SectorCreated;
+import br.com.cmachado.parkingsystem.domain.model.sector.events.SectorRegistered;
 import br.com.cmachado.parkingsystem.domain.shared.AggregateRootBase;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
@@ -74,7 +74,7 @@ public class Sector extends AggregateRootBase<Sector> {
         this.openHour = openHour != null ? openHour : LocalTime.MIDNIGHT;
         this.closeHour = closeHour != null ? closeHour : LocalTime.of(23, 59);
         this.durationLimitMinutes = durationLimitMinutes != null ? durationLimitMinutes : 1440;
-        registerEvent(new SectorCreated(this));
+        registerEvent(new SectorRegistered(this));
     }
 
     public static Sector register(SectorCode code, Money basePrice, Integer maxCapacity,

@@ -11,7 +11,7 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionS
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleExited;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
-import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.SpotReleased;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.ParkingSpotReleased;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.ParkingSpotNotFoundException;
 import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyType;
@@ -115,7 +115,7 @@ class ExitWebhookEventHandlerTest {
         assertEquals(ParkingSessionStatus.EXITED, session.getStatus(), "session must be EXITED");
         assertFalse(theSpot.isOccupied(), "spot must be released");
         assertHasEvent(session, VehicleExited.class);
-        assertHasEvent(theSpot, SpotReleased.class);
+        assertHasEvent(theSpot, ParkingSpotReleased.class);
         verify(chargeCalculator).charge(eq(session), any(LocalDateTime.class));
         verify(spotRepository).save(theSpot);
         verify(sessionRepository).save(session);

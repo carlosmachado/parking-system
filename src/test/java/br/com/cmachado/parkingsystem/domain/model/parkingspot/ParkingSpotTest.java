@@ -5,8 +5,8 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleP
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.CantParkSessionException;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.ParkingSpotOccupiedException;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.ParkingSpotRegistered;
-import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.SpotOccupied;
-import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.SpotReleased;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.ParkingSpotOccupied;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.ParkingSpotReleased;
 import br.com.cmachado.parkingsystem.fixtures.ParkingSessionFixture;
 import br.com.cmachado.parkingsystem.fixtures.ParkingSpotFixture;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ class ParkingSpotTest {
 
         // assert
         assertTrue(spot.isOccupied(), "spot must be occupied after park");
-        assertHasEvent(spot, SpotOccupied.class);
+        assertHasEvent(spot, ParkingSpotOccupied.class);
         assertHasEvent(session, VehicleParked.class);
     }
 
@@ -79,6 +79,6 @@ class ParkingSpotTest {
 
         // assert
         assertFalse(spot.isOccupied(), "spot must be free after release");
-        assertHasEvent(spot, SpotReleased.class);
+        assertHasEvent(spot, ParkingSpotReleased.class);
     }
 }

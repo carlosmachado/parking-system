@@ -106,7 +106,7 @@ class RevenueServiceImplTest {
     }
 
     private DailyRevenue revenue(String sector, LocalDate date, String amount) {
-        DailyRevenue dailyRevenue = new DailyRevenue(SectorCode.of(sector), date);
+        DailyRevenue dailyRevenue = DailyRevenue.initiate(SectorCode.of(sector), date);
         dailyRevenue.addRevenue(Money.of(amount));
         return dailyRevenue;
     }

@@ -5,11 +5,11 @@ import br.com.cmachado.parkingsystem.domain.shared.DomainEvent;
 import lombok.Getter;
 
 @Getter
-public class DailyRevenueCreated extends DomainEvent {
+public class DailyRevenueInitiated extends DomainEvent {
 
     private final DailyRevenue dailyRevenue;
 
-    public DailyRevenueCreated(DailyRevenue dailyRevenue) {
+    public DailyRevenueInitiated(DailyRevenue dailyRevenue) {
         super(dailyRevenue);
         this.dailyRevenue = dailyRevenue;
     }

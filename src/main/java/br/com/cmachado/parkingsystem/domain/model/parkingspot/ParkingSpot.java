@@ -5,8 +5,8 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.ParkingSpotRegistered;
-import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.SpotOccupied;
-import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.SpotReleased;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.ParkingSpotOccupied;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.ParkingSpotReleased;
 import br.com.cmachado.parkingsystem.domain.shared.AggregateRootBase;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
@@ -82,12 +82,12 @@ public class ParkingSpot extends AggregateRootBase<ParkingSpot> {
         throwIfNotEnteredStatus(session);
         session.parkOn(this);
         this.occupied = true;
-        registerEvent(new SpotOccupied(this));
+        registerEvent(new ParkingSpotOccupied(this));
     }
 
     public void release() {
         this.occupied = false;
-        registerEvent(new SpotReleased(this));
+        registerEvent(new ParkingSpotReleased(this));
     }
 
     @Override
