@@ -6,8 +6,10 @@ import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
+import br.com.cmachado.parkingsystem.domain.service.pricing.PricingElection;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.DiscountPricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyFactory;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyType;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.StandardPricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.Surcharge10PricingStrategy;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.Surcharge25PricingStrategy;
@@ -25,6 +27,9 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +38,7 @@ class ChargeCalculatorTest {
     @Mock private SectorRepository sectorRepository;
     @Mock private ParkingSpotRepository spotRepository;
 
+    private PricingStrategyFactory factory;
     private ChargeCalculator calculator;
 
     private static final LocalDateTime EXIT_2H = LocalDateTime.parse("2025-01-01T12:00:00");
@@ -40,12 +46,16 @@ class ChargeCalculatorTest {
 
     @BeforeEach
     void setUp() {
-        PricingStrategyFactory factory = new PricingStrategyFactory(
+        factory = new PricingStrategyFactory(
                 new DiscountPricingStrategy(),
                 new StandardPricingStrategy(),
                 new Surcharge10PricingStrategy(),
                 new Surcharge25PricingStrategy());
-        calculator = new ChargeCalculator(sectorRepository, spotRepository, factory);
+        calculator = calculatorElecting(PricingElection.AT_EXIT);
+    }
+
+    private ChargeCalculator calculatorElecting(PricingElection election) {
+        return new ChargeCalculator(sectorRepository, spotRepository, factory, election);
     }
 
     @Test
@@ -156,6 +166,52 @@ class ChargeCalculatorTest {
         // assert
         assertEquals(BigDecimal.ZERO.setScale(2), session.getAmountCharged().getAmount(),
                 "first 30 minutes are free");
+    }
+
+    @Test
+    void usesStrategyElectedAtEntryAndSkipsOccupancyLookup() {
+        // arrange — strategy already elected at entry (AT_ENTRY)
+        ParkingSpot spot = ParkingSpotFixture.aSpot().withSector("A").build();
+        ParkingSession session = ParkingSessionFixture.aSession()
+                .withElection(PricingElection.AT_ENTRY)
+                .withStrategy(PricingStrategyType.SURCHARGE_25)
+                .parkedOn(spot)
+                .build();
+        when(sectorRepository.findByCode(SectorCode.of("A")))
+                .thenReturn(Optional.of(SectorFixture.aSector().withCode("A").withBasePrice("10.00").build()));
+
+        // act
+        calculator.charge(session, EXIT_2H);
+
+        // assert — uses the stored strategy (2h * 10.00 * 1.25) and never queries occupancy
+        assertEquals(new BigDecimal("25.00"), session.getAmountCharged().getAmount(),
+                "must apply the strategy elected at entry");
+        assertEquals(PricingStrategyType.SURCHARGE_25, session.getPricingStrategy(), "strategy stays the elected one");
+        verify(spotRepository, never()).findOccupancyRate();
+    }
+
+    @Test
+    void electOnEntryAtExitModeDefersStrategy() {
+        // act
+        ChargeCalculator.EntryPricing pricing = calculatorElecting(PricingElection.AT_EXIT).electOnEntry();
+
+        // assert
+        assertEquals(PricingElection.AT_EXIT, pricing.election(), "election mode recorded");
+        assertNull(pricing.strategy(), "AT_EXIT must not elect a strategy at entry");
+        verify(spotRepository, never()).findOccupancyRate();
+    }
+
+    @Test
+    void electOnEntryAtEntryModeElectsFromOccupancy() {
+        // arrange
+        when(spotRepository.findOccupancyRate()).thenReturn(0.8); // ≥ 0.75 → 25% surcharge
+
+        // act
+        ChargeCalculator.EntryPricing pricing = calculatorElecting(PricingElection.AT_ENTRY).electOnEntry();
+
+        // assert
+        assertEquals(PricingElection.AT_ENTRY, pricing.election(), "election mode recorded");
+        assertEquals(PricingStrategyType.SURCHARGE_25, pricing.strategy(), "strategy elected from entry occupancy");
     }
 
     private ParkingSession parkedSessionInSector(String sectorCode) {

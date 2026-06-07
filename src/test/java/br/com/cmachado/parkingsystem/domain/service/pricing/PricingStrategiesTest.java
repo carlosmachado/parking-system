@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 class PricingStrategiesTest {
 
@@ -77,6 +78,15 @@ class PricingStrategiesTest {
     }
 
     @Test
+    void eachStrategyReportsItsType() {
+        // act / assert
+        assertEquals(PricingStrategyType.DISCOUNT, discountStrategy.getType());
+        assertEquals(PricingStrategyType.STANDARD, standardStrategy.getType());
+        assertEquals(PricingStrategyType.SURCHARGE_10, surcharge10Strategy.getType());
+        assertEquals(PricingStrategyType.SURCHARGE_25, surcharge25Strategy.getType());
+    }
+
+    @Test
     void factorySelectsStrategyByOccupancyTier() {
         // act / assert
         assertEquals(discountStrategy, factory.getStrategy(occupancy(0.10)), "< 25% → discount");
@@ -84,6 +94,24 @@ class PricingStrategiesTest {
         assertEquals(surcharge10Strategy, factory.getStrategy(occupancy(0.60)), "< 75% → 10% surcharge");
         assertEquals(surcharge25Strategy, factory.getStrategy(occupancy(0.80)), "≥ 75% → 25% surcharge");
         assertEquals(surcharge25Strategy, factory.getStrategy(occupancy(1.00)), "100% → 25% surcharge");
+    }
+
+    @Test
+    void factoryElectsTypeByOccupancyTier() {
+        // act / assert
+        assertEquals(PricingStrategyType.DISCOUNT, factory.electType(occupancy(0.10)), "< 25% → DISCOUNT");
+        assertEquals(PricingStrategyType.STANDARD, factory.electType(occupancy(0.30)), "< 50% → STANDARD");
+        assertEquals(PricingStrategyType.SURCHARGE_10, factory.electType(occupancy(0.60)), "< 75% → SURCHARGE_10");
+        assertEquals(PricingStrategyType.SURCHARGE_25, factory.electType(occupancy(0.80)), "≥ 75% → SURCHARGE_25");
+    }
+
+    @Test
+    void factoryGetStrategyByTypeReturnsSameInstance() {
+        // act / assert
+        assertSame(discountStrategy, factory.getStrategy(PricingStrategyType.DISCOUNT));
+        assertSame(standardStrategy, factory.getStrategy(PricingStrategyType.STANDARD));
+        assertSame(surcharge10Strategy, factory.getStrategy(PricingStrategyType.SURCHARGE_10));
+        assertSame(surcharge25Strategy, factory.getStrategy(PricingStrategyType.SURCHARGE_25));
     }
 
     private Period periodOfMinutes(long minutes) {

@@ -14,6 +14,7 @@ import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotReposit
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.events.SpotReleased;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.ParkingSpotNotFoundException;
 import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyType;
 import br.com.cmachado.parkingsystem.fixtures.ParkingSessionFixture;
 import br.com.cmachado.parkingsystem.fixtures.ParkingSpotFixture;
 import br.com.cmachado.parkingsystem.fixtures.WebhookEventFixture;
@@ -122,7 +123,7 @@ class ExitWebhookEventHandlerTest {
 
     private void chargeExits(Money amount) {
         doAnswer(inv -> {
-            ((ParkingSession) inv.getArgument(0)).exit(inv.getArgument(1), amount);
+            ((ParkingSession) inv.getArgument(0)).exit(inv.getArgument(1), amount, PricingStrategyType.STANDARD);
             return null;
         }).when(chargeCalculator).charge(any(ParkingSession.class), any(LocalDateTime.class));
     }

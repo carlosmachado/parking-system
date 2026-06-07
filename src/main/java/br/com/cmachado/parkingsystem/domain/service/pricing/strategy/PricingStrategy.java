@@ -12,4 +12,7 @@ public interface PricingStrategy {
      * @return the amount to charge for {@code period} given the sector's {@code basePrice}
      */
     Money calculate(Period period, Money basePrice);
+
+    /** @return the stable identifier used to persist and reload this strategy */
+    PricingStrategyType getType();
 }

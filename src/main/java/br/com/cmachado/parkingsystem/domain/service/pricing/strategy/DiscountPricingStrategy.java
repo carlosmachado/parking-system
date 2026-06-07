@@ -9,4 +9,9 @@ public class DiscountPricingStrategy extends BasePricingStrategy {
     protected Money applyMultiplier(Money baseAmount) {
         return baseAmount.multiply(0.90);
     }
+
+    @Override
+    public PricingStrategyType getType() {
+        return PricingStrategyType.DISCOUNT;
+    }
 }

@@ -9,4 +9,9 @@ public class StandardPricingStrategy extends BasePricingStrategy {
     protected Money applyMultiplier(Money baseAmount) {
         return baseAmount;
     }
+
+    @Override
+    public PricingStrategyType getType() {
+        return PricingStrategyType.STANDARD;
+    }
 }

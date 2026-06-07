@@ -7,6 +7,8 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleP
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.CantParkSessionException;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
+import br.com.cmachado.parkingsystem.domain.service.pricing.PricingElection;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyType;
 import br.com.cmachado.parkingsystem.fixtures.ParkingSessionFixture;
 import br.com.cmachado.parkingsystem.fixtures.ParkingSpotFixture;
 import org.junit.jupiter.api.Test;
@@ -24,12 +26,18 @@ class ParkingSessionTest {
     private static final LocalDateTime EXIT = LocalDateTime.parse("2025-01-01T12:00:00");
 
     @Test
-    void enterStartsSessionInEnteredStatusAndRegistersEvent() {
+    void startBuildsSessionInEnteredStatusRecordsElectionAndRegistersEvent() {
         // arrange / act
-        ParkingSession session = ParkingSessionFixture.aSession().enteredAt(ENTRY).build();
+        ParkingSession session = ParkingSessionFixture.aSession().enteredAt(ENTRY)
+                .withElection(PricingElection.AT_ENTRY)
+                .withStrategy(PricingStrategyType.SURCHARGE_10)
+                .build();
 
         // assert
         assertEquals(ParkingSessionStatus.ENTERED, session.getStatus(), "new session must be ENTERED");
+        assertEquals(PricingElection.AT_ENTRY, session.getPricingElection(), "election mode must be recorded");
+        assertEquals(PricingStrategyType.SURCHARGE_10, session.getPricingStrategy(),
+                "strategy elected at entry must be stored");
         assertHasEvent(session, VehicleEntered.class);
     }
 
@@ -57,11 +65,13 @@ class ParkingSessionTest {
         ParkingSession session = ParkingSessionFixture.aSession().enteredAt(ENTRY).parkedOn(spot).build();
 
         // act
-        session.exit(EXIT, Money.of("22.00"));
+        session.exit(EXIT, Money.of("22.00"), PricingStrategyType.SURCHARGE_10);
 
         // assert
         assertEquals(ParkingSessionStatus.EXITED, session.getStatus(), "exited session must be EXITED");
         assertEquals(Money.of("22.00"), session.getAmountCharged(), "charge must be stored");
+        assertEquals(PricingStrategyType.SURCHARGE_10, session.getPricingStrategy(),
+                "applied strategy must be stored at exit");
         assertHasEvent(session, VehicleExited.class);
     }
 
@@ -81,10 +91,10 @@ class ParkingSessionTest {
     void exitRejectsAlreadyExitedSession() {
         // arrange
         ParkingSession session = ParkingSessionFixture.aSession().enteredAt(ENTRY).build();
-        session.exit(EXIT, Money.ZERO);
+        session.exit(EXIT, Money.ZERO, PricingStrategyType.STANDARD);
 
         // act / assert
-        assertThrows(IllegalStateException.class, () -> session.exit(EXIT, Money.ZERO),
+        assertThrows(IllegalStateException.class, () -> session.exit(EXIT, Money.ZERO, PricingStrategyType.STANDARD),
                 "must not exit a session twice");
     }
 }

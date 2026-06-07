@@ -7,6 +7,7 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.GarageFullException;
+import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -26,13 +27,16 @@ public class EntryWebhookEventHandler extends ValidatingWebhookEventHandler {
 
     private final ParkingSessionRepository sessionRepository;
     private final ParkingSpotRepository parkingSpotRepository;
+    private final ChargeCalculator chargeCalculator;
     private final Counter garageFullCounter;
 
     public EntryWebhookEventHandler(ParkingSessionRepository sessionRepository,
                                     ParkingSpotRepository parkingSpotRepository,
+                                    ChargeCalculator chargeCalculator,
                                     MeterRegistry meterRegistry) {
         this.sessionRepository = sessionRepository;
         this.parkingSpotRepository = parkingSpotRepository;
+        this.chargeCalculator = chargeCalculator;
         this.garageFullCounter = Counter.builder("garage.entry.rejected")
                 .description("Entry attempts rejected because the garage was at full capacity")
                 .register(meterRegistry);
@@ -61,7 +65,11 @@ public class EntryWebhookEventHandler extends ValidatingWebhookEventHandler {
             throw new GarageFullException(licensePlate);
         }
 
-        var session = ParkingSession.enter(licensePlate, entryTime);
+        var pricing = chargeCalculator.electOnEntry();
+        var session = ParkingSession.start(licensePlate, entryTime)
+                .charging(pricing.election())
+                .strategy(pricing.strategy())
+                .build();
         sessionRepository.save(session);
     }
 

@@ -9,4 +9,9 @@ public class Surcharge10PricingStrategy extends BasePricingStrategy {
     protected Money applyMultiplier(Money baseAmount) {
         return baseAmount.multiply(1.10);
     }
+
+    @Override
+    public PricingStrategyType getType() {
+        return PricingStrategyType.SURCHARGE_10;
+    }
 }
