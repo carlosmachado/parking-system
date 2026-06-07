@@ -1,7 +1,7 @@
-package br.com.cmachado.parkingsystem.application.parkingsession.impl;
+package br.com.cmachado.parkingsystem.application.parkingsession;
 
+import br.com.cmachado.parkingsystem.application.parkingsession.webhook.mediator.WebhookEventMediator;
 import br.com.cmachado.parkingsystem.application.revenue.RevenueService;
-import br.com.cmachado.parkingsystem.application.parkingsession.ParkingSessionService;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.revenue.DailyRevenueRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.GarageFullException;
@@ -34,12 +34,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-class ParkingSessionServiceTest {
+class WebhookEventMediatorIntegrationTest {
 
     private static final String SECTOR = "SEC-A";
 
     @Autowired
-    private ParkingSessionService webhookService;
+    private WebhookEventMediator webhookEventMediator;
 
     @Autowired
     private RevenueService revenueService;
@@ -81,10 +81,10 @@ class ParkingSessionServiceTest {
         // arrange
         String plate = "ABC1234";
 
-        // act — full lifecycle through the webhook service
-        webhookService.handle(WebhookEventFixture.anEntry().withPlate(plate).at(LocalDateTime.now().minusHours(2)).build());
-        webhookService.handle(WebhookEventFixture.aParked().withPlate(plate).atLocation(10.0, 10.0).build());
-        webhookService.handle(WebhookEventFixture.anExit().withPlate(plate).at(LocalDateTime.now()).build());
+        // act — full lifecycle through the webhook mediator
+        webhookEventMediator.handle(WebhookEventFixture.anEntry().withPlate(plate).at(LocalDateTime.now().minusHours(2)).build());
+        webhookEventMediator.handle(WebhookEventFixture.aParked().withPlate(plate).atLocation(10.0, 10.0).build());
+        webhookEventMediator.handle(WebhookEventFixture.anExit().withPlate(plate).at(LocalDateTime.now()).build());
 
         // assert — revenue updates asynchronously after the exit commits.
         // Stayed 2h, base 10. Spot released before charge calc → occupancy 0/2 = 0% → 10% discount: 20 * 0.90
@@ -101,14 +101,14 @@ class ParkingSessionServiceTest {
 
         // act / assert
         assertThrows(GarageFullException.class,
-                () -> webhookService.handle(WebhookEventFixture.anEntry().withPlate("CCC3333").at(LocalDateTime.now()).build()),
+                () -> webhookEventMediator.handle(WebhookEventFixture.anEntry().withPlate("CCC3333").at(LocalDateTime.now()).build()),
                 "entry into a full garage must be rejected");
         assertEquals(countBefore, sessionRepository.count(), "rejected entry must not be stored");
     }
 
     private void parkVehicle(String plate, double lat, double lng) {
-        webhookService.handle(WebhookEventFixture.anEntry().withPlate(plate).at(LocalDateTime.now()).build());
-        webhookService.handle(WebhookEventFixture.aParked().withPlate(plate).atLocation(lat, lng).build());
+        webhookEventMediator.handle(WebhookEventFixture.anEntry().withPlate(plate).at(LocalDateTime.now()).build());
+        webhookEventMediator.handle(WebhookEventFixture.aParked().withPlate(plate).atLocation(lat, lng).build());
     }
 
     /** Polls the revenue endpoint until the async update lands or a timeout is reached. */

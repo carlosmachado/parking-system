@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook;
 
-import br.com.cmachado.parkingsystem.application.parkingsession.ParkingSessionService;
+import br.com.cmachado.parkingsystem.application.parkingsession.webhook.mediator.WebhookEventMediator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Receives the simulator's parking events and delegates to {@link ParkingSessionService}.
+ * Receives the simulator's parking events and delegates to {@link WebhookEventMediator}.
  * Always answers HTTP 200 on success, as expected by the simulator.
  */
 @RestController
@@ -18,15 +18,15 @@ public class WebhookRestController {
 
     private static final int MAX_ATTEMPTS = 3;
 
-    private final ParkingSessionService parkingSessionService;
+    private final WebhookEventMediator webhookEventMediator;
 
-    public WebhookRestController(ParkingSessionService parkingSessionService) {
-        this.parkingSessionService = parkingSessionService;
+    public WebhookRestController(WebhookEventMediator webhookEventMediator) {
+        this.webhookEventMediator = webhookEventMediator;
     }
 
     @PostMapping
     public ResponseEntity<Void> handleEvent(@RequestBody WebhookEventRequest request) {
-        runWithRetry(() -> parkingSessionService.handle(request));
+        runWithRetry(() -> webhookEventMediator.handle(request));
         return ResponseEntity.ok().build();
     }
 

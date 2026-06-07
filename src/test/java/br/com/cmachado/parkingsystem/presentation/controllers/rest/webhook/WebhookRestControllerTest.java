@@ -1,6 +1,6 @@
 package br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook;
 
-import br.com.cmachado.parkingsystem.application.parkingsession.ParkingSessionService;
+import br.com.cmachado.parkingsystem.application.parkingsession.webhook.mediator.WebhookEventMediator;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.infrastructure.http.BadRequestException;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.GarageFullException;
@@ -30,7 +30,7 @@ class WebhookRestControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private ParkingSessionService webhookService;
+    private WebhookEventMediator webhookEventMediator;
 
     @Test
     void eventReturns200AndDelegates() throws Exception {
@@ -39,13 +39,13 @@ class WebhookRestControllerTest {
                 .andExpect(status().isOk());
 
         // assert
-        verify(webhookService).handle(any());
+        verify(webhookEventMediator).handle(any());
     }
 
     @Test
     void serviceThrowsBadRequestReturns400() throws Exception {
         // arrange
-        doThrow(new BadRequestException("event_type is required")).when(webhookService).handle(any());
+        doThrow(new BadRequestException("event_type is required")).when(webhookEventMediator).handle(any());
         String body = """
                 {"license_plate":"ZUL0001"}
                 """;
@@ -58,7 +58,7 @@ class WebhookRestControllerTest {
     @Test
     void entryWhenGarageFullReturns409WithErrorCode() throws Exception {
         // arrange
-        doThrow(new GarageFullException(LicensePlate.of("ZUL0001"))).when(webhookService).handle(any());
+        doThrow(new GarageFullException(LicensePlate.of("ZUL0001"))).when(webhookEventMediator).handle(any());
 
         // act / assert
         mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(ENTRY_BODY))
