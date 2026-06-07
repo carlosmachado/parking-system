@@ -29,7 +29,7 @@ public class SimulatorClient {
     /**
      * Fetches the garage layout (sectors and spots) from {@code GET /garage}.
      *
-     * @throws RuntimeException if the simulator cannot be reached or returns an error
+     * @throws SimulatorClientException if the simulator cannot be reached or returns an error
      */
     public GarageResponse fetchGarageConfig() {
         logger.info("Fetching garage configuration from simulator...");
@@ -40,7 +40,7 @@ public class SimulatorClient {
                     .body(GarageResponse.class);
         } catch (Exception e) {
             logger.error("Failed to fetch garage config from simulator: {}", e.getMessage());
-            throw new RuntimeException("Failed to fetch garage config from simulator", e);
+            throw new SimulatorClientException("Failed to fetch garage config from simulator", e);
         }
     }
 
