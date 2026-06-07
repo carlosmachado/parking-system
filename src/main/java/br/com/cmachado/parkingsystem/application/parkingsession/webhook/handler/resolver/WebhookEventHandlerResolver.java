@@ -21,7 +21,7 @@ public class WebhookEventHandlerResolver {
     public WebhookEventHandler resolve(WebhookEventType eventType) {
         WebhookEventHandler handler = handlers.get(eventType);
         if (handler == null) {
-            throw new IllegalStateException("No webhook event handler registered for " + eventType);
+            throw new IllegalStateException("No handler registered for event type '%s'".formatted(eventType));
         }
         return handler;
     }

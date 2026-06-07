@@ -17,7 +17,7 @@ public enum WebhookEventType {
         try {
             return WebhookEventType.valueOf(raw.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            throw new BadRequestException("Unknown event_type: " + raw);
+            throw new BadRequestException("Unrecognized event_type '%s'".formatted(raw));
         }
     }
 }

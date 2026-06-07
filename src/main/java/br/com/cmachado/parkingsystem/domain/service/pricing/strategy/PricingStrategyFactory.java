@@ -45,7 +45,7 @@ public class PricingStrategyFactory {
     public PricingStrategy getStrategy(PricingStrategyType type) {
         PricingStrategy strategy = strategiesByType.get(type);
         if (strategy == null) {
-            throw new IllegalArgumentException("No pricing strategy registered for type " + type);
+            throw new IllegalArgumentException("No pricing strategy registered for type '%s'".formatted(type));
         }
         return strategy;
     }
