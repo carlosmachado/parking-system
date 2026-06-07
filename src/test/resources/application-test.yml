@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    # Use H2 in-memory for tests
+    # MODE=MySQL so INSERT … ON DUPLICATE KEY UPDATE (the revenue upsert) runs the same as in prod
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    driverClassName: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+  # Disable Flyway for tests (schema is created by JPA)
+  flyway:
+    enabled: false
+
+# Disable simulator call on startup for tests
+simulator:
+  url: http://localhost:9999
+
+# Fail fast on startup garage init during tests (the simulator is not running)
+garage:
+  init:
+    max-attempts: 1
+    retry-delay-ms: 0
+
+revenue:
+  update:
+    max-attempts: 3
+    retry-delay-ms: 0
+
+timezone: America/Sao_Paulo
