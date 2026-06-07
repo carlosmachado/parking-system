@@ -11,6 +11,8 @@ de garagem através de um webhook.
   **saída (EXIT)** via webhook.
 - Ocupação e liberação de vagas conforme a movimentação dos veículos.
 - Cálculo de tarifa com **preço dinâmico** baseado na lotação.
+- Eleição da estratégia de preço configurável: na **saída** (padrão) ou na **entrada**.
+- Eventos de webhook **idempotentes**: ENTRY e PARKED repetidos não duplicam sessões.
 - Consulta da receita por setor e por dia.
 
 ## Stack
@@ -55,6 +57,24 @@ docker compose logs -f garage-sim
 > **DataGrip / MySQL Workbench:** o banco fica disponível em `localhost:3307`
 > (usuário `root`, senha `root`).
 
+## Configuração
+
+Definida em `application.yml` (sobrescrevível por variável de ambiente):
+
+| Propriedade | Padrão | Descrição |
+|-------------|--------|-----------|
+| `pricing.election` | `AT_EXIT` | Quando eleger a estratégia de preço: `AT_EXIT` ou `AT_ENTRY`. |
+| `simulator.connect-timeout-ms` | `2000` | Timeout de conexão com o simulador. |
+| `simulator.read-timeout-ms` | `5000` | Timeout de leitura das respostas do simulador. |
+| `revenue.update.max-attempts` | `3` | Tentativas de gravação da receita antes de descartar o incremento. |
+| `revenue.update.retry-delay-ms` | `100` | Espera entre tentativas de gravação da receita. |
+
+No `docker compose`, alterne o modo de eleição via variável de ambiente:
+
+```bash
+PRICING_ELECTION=AT_ENTRY docker compose up -d --build app
+```
+
 ## Endpoints
 
 ### `POST /webhook`
@@ -65,6 +85,20 @@ Recebe os eventos do simulador. Sempre responde `HTTP 200`.
 { "license_plate": "ZUL0001", "entry_time": "2025-01-01T12:00:00.000Z", "event_type": "ENTRY" }
 { "license_plate": "ZUL0001", "lat": -23.561684, "lng": -46.655981, "event_type": "PARKED" }
 { "license_plate": "ZUL0001", "exit_time": "2025-01-01T12:30:00.000Z", "event_type": "EXIT" }
+```
+
+Em caso de erro, a resposta segue um formato padronizado com `code` legível por máquina
+(ex.: `EST-001` para garagem cheia, `WEB-001` para campo obrigatório ausente):
+
+```json
+{
+  "timestamp": "2025-01-01T12:00:00",
+  "status": 409,
+  "error": "Conflict",
+  "code": "EST-001",
+  "message": "Garage is full, entry blocked for ZUL0001",
+  "path": "/webhook"
+}
 ```
 
 ### `GET /revenue`
@@ -87,18 +121,24 @@ curl "http://localhost:3003/revenue?date=2025-01-01&sector=A"
 - **Entrada**: cria uma sessão quando existe ao menos uma vaga livre em um setor aberto no
   horário atual. Se nenhum setor aberto tiver vaga disponível, a entrada é bloqueada.
 - **Estacionamento**: associa o veículo à vaga livre mais próxima da localização recebida e
-  marca a vaga como ocupada.
-- **Saída**: libera a vaga e cobra a permanência usando a ocupação global atual da garagem.
+  marca a vaga como ocupada. Um PARKED repetido na mesma vaga é ignorado; em vaga diferente é
+  rejeitado.
+- **Saída**: libera a vaga e cobra a permanência.
   - Os primeiros 30 minutos são gratuitos.
   - A partir daí, cobra-se uma tarifa fixa por hora iniciada (incluindo a primeira hora),
     usando o `basePrice` do setor, arredondando para cima.
-- **Preço dinâmico** conforme a lotação no momento da saída:
+- **Preço dinâmico** conforme a lotação da garagem:
   | Lotação | Ajuste |
   |---------|--------|
   | < 25%   | −10%   |
   | < 50%   | base   |
   | < 75%   | +10%   |
   | ≤ 100%  | +25%   |
+- **Momento da eleição** controlado por `pricing.election` (ver Configuração):
+  - `AT_EXIT` (padrão): a lotação é lida na saída e a estratégia escolhida nesse instante.
+  - `AT_ENTRY`: a estratégia é eleita na entrada e gravada na sessão; a saída apenas a aplica,
+    sem consultar a lotação. O modo escolhido fica registrado em cada sessão, então alternar a
+    configuração não altera o preço de sessões já em andamento.
 - Setores são divisões lógicas de um único conjunto de vagas, com uma única entrada.
 
 ## Testes
@@ -107,6 +147,8 @@ curl "http://localhost:3003/revenue?date=2025-01-01&sector=A"
 ./mvnw test
 ```
 
-Cobrem as estratégias de preço, o cálculo de período, o fluxo completo de webhook
-(entrada → estacionar → saída) com apuração de receita, o bloqueio de entrada com garagem
-cheia, os controllers REST e os value objects.
+Cobrem as estratégias de preço e os dois modos de eleição (`AT_ENTRY`/`AT_EXIT`), o cálculo
+de período, o fluxo completo de webhook (entrada → estacionar → saída) com apuração de receita,
+a idempotência de ENTRY/PARKED repetidos, o bloqueio de entrada com garagem cheia, o retry de
+gravação de receita sob falha transitória, o cliente do simulador, os controllers REST e os
+value objects.
