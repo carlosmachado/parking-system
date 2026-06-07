@@ -3,7 +3,7 @@ package br.com.cmachado.parkingsystem.fixtures;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
-import br.com.cmachado.parkingsystem.domain.service.pricing.PricingElection;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.PricingElection;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyType;
 
 import java.time.LocalDateTime;

@@ -8,7 +8,7 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionR
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.GarageFullException;
 import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
-import br.com.cmachado.parkingsystem.domain.service.pricing.PricingElection;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.PricingElection;
 import br.com.cmachado.parkingsystem.fixtures.WebhookEventFixture;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;

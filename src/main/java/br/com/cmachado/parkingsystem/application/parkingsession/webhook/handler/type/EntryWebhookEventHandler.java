@@ -1,7 +1,6 @@
 package br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.type;
 
 import br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.WebhookEventType;
-import br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.type.base.ValidatingWebhookEventHandler;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
@@ -20,7 +19,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 @Component
-public class EntryWebhookEventHandler extends ValidatingWebhookEventHandler {
+public class EntryWebhookEventHandler extends BaseWebhookEventHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(EntryWebhookEventHandler.class);
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_DATE_TIME;

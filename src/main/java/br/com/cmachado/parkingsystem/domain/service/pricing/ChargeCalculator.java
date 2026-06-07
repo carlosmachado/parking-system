@@ -3,6 +3,7 @@ package br.com.cmachado.parkingsystem.domain.service.pricing;
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.Period;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.PricingElection;
 import br.com.cmachado.parkingsystem.domain.model.sector.OccupancyRate;
 import br.com.cmachado.parkingsystem.domain.model.sector.Sector;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
@@ -37,20 +38,17 @@ public class ChargeCalculator {
         this.election = election;
     }
 
-    /**
-     * The pricing to stamp on a session at entry: always the configured {@link PricingElection},
-     * plus the elected {@link PricingStrategyType} when electing {@code AT_ENTRY} (otherwise null,
-     * deferring the choice to exit).
-     */
-    public record EntryPricing(PricingElection election, PricingStrategyType strategy) {
-    }
-
     /** Decides the pricing to record when a session is created. */
     public EntryPricing electOnEntry() {
-        PricingStrategyType strategy = election == PricingElection.AT_ENTRY
-                ? pricingStrategyFactory.electType(resolveOccupancyRate())
-                : null;
-        return new EntryPricing(election, strategy);
+        if (shouldElectPricingAtExit())
+            return new EntryPricing(PricingElection.AT_EXIT, null);
+
+        var type = pricingStrategyFactory.electType(resolveOccupancyRate());
+        return new EntryPricing(PricingElection.AT_ENTRY, type);
+    }
+
+    private boolean shouldElectPricingAtExit() {
+        return election == PricingElection.AT_EXIT;
     }
 
     /**
@@ -58,16 +56,23 @@ public class ChargeCalculator {
      * present (no occupancy lookup); otherwise elects one from the current occupancy.
      */
     public void charge(ParkingSession session, LocalDateTime exitTime) {
-        PricingStrategyType type = session.getPricingElection() == PricingElection.AT_ENTRY
-                ? session.getPricingStrategy()
-                : pricingStrategyFactory.electType(resolveOccupancyRate());
+        PricingStrategyType type = extractFromSessionOrElectPricing(session);
 
         Money basePrice = resolveBasePrice(session.getSectorCode());
+
         PricingStrategy strategy = pricingStrategyFactory.getStrategy(type);
+
         Period period = session.getPeriod().end(exitTime);
+
         Money amountCharged = strategy.calculate(period, basePrice);
 
         session.exit(exitTime, amountCharged, type);
+    }
+
+    private PricingStrategyType extractFromSessionOrElectPricing(ParkingSession session) {
+        return session.getPricingElection() == PricingElection.AT_ENTRY
+                ? session.getPricingStrategy()
+                : pricingStrategyFactory.electType(resolveOccupancyRate());
     }
 
     private OccupancyRate resolveOccupancyRate() {
@@ -84,4 +89,11 @@ public class ChargeCalculator {
 
         return sectorRepository.findMinBasePrice().map(Money::of).orElse(Money.ZERO);
     }
+
+    /**
+     * The pricing to stamp on a session at entry: always the configured {@link PricingElection},
+     * plus the elected {@link PricingStrategyType} when electing {@code AT_ENTRY} (otherwise null,
+     * deferring the choice to exit).
+     */
+    public record EntryPricing(PricingElection election, PricingStrategyType strategy) { }
 }

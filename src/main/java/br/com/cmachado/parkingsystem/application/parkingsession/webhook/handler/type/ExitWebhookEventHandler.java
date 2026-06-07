@@ -1,7 +1,6 @@
 package br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.type;
 
 import br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.WebhookEventType;
-import br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.type.base.ValidatingWebhookEventHandler;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
@@ -20,7 +19,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Component
-public class ExitWebhookEventHandler extends ValidatingWebhookEventHandler {
+public class ExitWebhookEventHandler extends BaseWebhookEventHandler {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
 
@@ -57,15 +56,18 @@ public class ExitWebhookEventHandler extends ValidatingWebhookEventHandler {
                         licensePlate, List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED))
                 .orElseThrow(() -> new ParkingSessionNotFoundException("No active session found for plate " + licensePlate));
 
-        if (session.isParked()) {
-            ParkingSpotId spotId = session.getSpotId();
-            ParkingSpot spot = parkingSpotRepository.findById(spotId)
-                    .orElseThrow(() -> new ParkingSpotNotFoundException("No spot found for id " + spotId));
-            spot.release();
-            parkingSpotRepository.save(spot);
-        }
+        if (session.isParked())
+            tryToReleaseSpot(session);
 
         chargeCalculator.charge(session, exitTime);
         sessionRepository.save(session);
+    }
+
+    private void tryToReleaseSpot(ParkingSession session) {
+        ParkingSpotId spotId = session.getSpotId();
+        ParkingSpot spot = parkingSpotRepository.findById(spotId)
+                .orElseThrow(() -> new ParkingSpotNotFoundException("No spot found for id " + spotId));
+        spot.release();
+        parkingSpotRepository.save(spot);
     }
 }

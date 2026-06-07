@@ -6,7 +6,6 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.Park
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotId;
-import br.com.cmachado.parkingsystem.domain.service.pricing.PricingElection;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyType;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleEntered;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleExited;

@@ -1,7 +1,6 @@
 package br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.type;
 
 import br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.WebhookEventType;
-import br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.type.base.ValidatingWebhookEventHandler;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
@@ -15,7 +14,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class ParkedWebhookEventHandler extends ValidatingWebhookEventHandler {
+public class ParkedWebhookEventHandler extends BaseWebhookEventHandler {
 
     private final ParkingSessionRepository sessionRepository;
     private final ParkingSpotRepository parkingSpotRepository;

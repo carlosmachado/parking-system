@@ -1,9 +1,9 @@
-package br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.type.base;
+package br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.type;
 
 import br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.WebhookEventHandler;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
 
-public abstract class ValidatingWebhookEventHandler implements WebhookEventHandler {
+public abstract class BaseWebhookEventHandler implements WebhookEventHandler {
 
     @Override
     public final void handle(WebhookEventRequest request) {

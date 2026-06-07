@@ -1,6 +1,7 @@
-package br.com.cmachado.parkingsystem.domain.service.pricing.strategy;
+package br.com.cmachado.parkingsystem.domain.service.pricing.strategy.type;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyType;
 import org.springframework.stereotype.Component;
 
 @Component

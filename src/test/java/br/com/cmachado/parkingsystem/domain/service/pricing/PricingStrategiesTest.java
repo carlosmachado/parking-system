@@ -4,6 +4,10 @@ import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.sector.OccupancyRate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.Period;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.*;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.type.DiscountPricingStrategy;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.type.StandardPricingStrategy;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.type.Surcharge10PricingStrategy;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.type.Surcharge25PricingStrategy;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;

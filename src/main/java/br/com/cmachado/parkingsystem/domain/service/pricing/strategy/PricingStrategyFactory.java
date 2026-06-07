@@ -1,6 +1,10 @@
 package br.com.cmachado.parkingsystem.domain.service.pricing.strategy;
 
 import br.com.cmachado.parkingsystem.domain.model.sector.OccupancyRate;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.type.DiscountPricingStrategy;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.type.StandardPricingStrategy;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.type.Surcharge10PricingStrategy;
+import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.type.Surcharge25PricingStrategy;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
