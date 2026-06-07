@@ -18,6 +18,9 @@ public class WebhookEventMediator {
 
     @Transactional
     public void handle(WebhookEventRequest request) {
+        if (request == null)
+            throw new BadRequestException("request body is required");
+
         if (request.getLicensePlate() == null || request.getLicensePlate().isBlank())
             throw new BadRequestException("license_plate is required");
 

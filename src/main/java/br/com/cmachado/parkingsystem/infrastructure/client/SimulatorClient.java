@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.util.Map;
+
 /**
  * HTTP client for the garage simulator: fetches the garage configuration and registers
  * this app's webhook URL.
@@ -52,7 +54,7 @@ public class SimulatorClient {
             restClient.post()
                     .uri("/garage")
                     .header("Content-Type", "application/json")
-                    .body("{\"webhook\":\"" + webhookUrl + "\"}")
+                    .body(Map.of("webhook", webhookUrl))
                     .retrieve()
                     .toBodilessEntity();
             logger.info("Webhook registered successfully.");

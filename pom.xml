@@ -19,7 +19,6 @@
 
     <properties>
         <java.version>21</java.version>
-        <modelmapper.version>3.2.0</modelmapper.version>
         <moneta.version>1.4.4</moneta.version>
     </properties>
 
@@ -66,11 +65,6 @@
         </dependency>
 
         <!-- Utilities -->
-        <dependency>
-            <groupId>org.modelmapper</groupId>
-            <artifactId>modelmapper</artifactId>
-            <version>${modelmapper.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

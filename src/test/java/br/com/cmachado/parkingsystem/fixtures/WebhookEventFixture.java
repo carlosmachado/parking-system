@@ -49,6 +49,15 @@ public final class WebhookEventFixture {
         return this;
     }
 
+    public WebhookEventFixture atRaw(String time) {
+        if ("EXIT".equals(eventType)) {
+            this.exitTime = time;
+        } else {
+            this.entryTime = time;
+        }
+        return this;
+    }
+
     public WebhookEventFixture atLocation(Double lat, Double lng) {
         this.lat = lat;
         this.lng = lng;

@@ -70,6 +70,17 @@ class ExitWebhookEventHandlerTest {
     }
 
     @Test
+    void invalidExitTimeThrows400() {
+        WebhookEventRequest request = WebhookEventFixture.anExit()
+                .withPlate("ZUL0001")
+                .atRaw("not-a-date")
+                .build();
+
+        assertThrows(WebhookEventValidationException.class, () -> handler.handle(request),
+                "EXIT with invalid exit_time must be rejected");
+    }
+
+    @Test
     void enteredSessionCallsChargeAndSavesSession() {
         ParkingSession session = enteredSession("EXIT001");
         when(sessionRepository.findByLicensePlateAndStatusIn(

@@ -36,6 +36,13 @@ class WebhookEventMediatorTest {
     }
 
     @Test
+    void nullRequestThrows400() {
+        assertThrows(BadRequestException.class, () -> mediator.handle(null),
+                "missing request body must be rejected");
+        verifyNoInteractions(handlerResolver);
+    }
+
+    @Test
     void missingLicensePlateThrows400() {
         WebhookEventRequest request = WebhookEventFixture.anEntry().withPlate(null).at(ENTRY).build();
 

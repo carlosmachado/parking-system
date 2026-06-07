@@ -15,10 +15,12 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -56,6 +58,17 @@ class EntryWebhookEventHandlerTest {
     }
 
     @Test
+    void invalidEntryTimeThrows400() {
+        WebhookEventRequest request = WebhookEventFixture.anEntry()
+                .withPlate("ZUL0001")
+                .atRaw("not-a-date")
+                .build();
+
+        assertThrows(WebhookEventValidationException.class, () -> handler.handle(request),
+                "ENTRY with invalid entry_time must be rejected");
+    }
+
+    @Test
     void garageFullThrowsGarageFullException() {
         when(spotRepository.existsAvailableSpotInOpenSector(any())).thenReturn(false);
 
@@ -74,5 +87,20 @@ class EntryWebhookEventHandlerTest {
         handler.handle(WebhookEventFixture.anEntry().withPlate("OPEN123").at(ENTRY).build());
 
         verify(sessionRepository).save(any(ParkingSession.class));
+    }
+
+    @Test
+    void availabilityUsesEntryEventTime() {
+        when(spotRepository.existsAvailableSpotInOpenSector(any())).thenReturn(true);
+        when(chargeCalculator.electOnEntry())
+                .thenReturn(new ChargeCalculator.EntryPricing(PricingElection.AT_EXIT, null));
+
+        handler.handle(WebhookEventFixture.anEntry().withPlate("TIME123")
+                .at(LocalDateTime.parse("2025-01-01T22:30:00"))
+                .build());
+
+        ArgumentCaptor<LocalTime> timeCaptor = ArgumentCaptor.forClass(LocalTime.class);
+        verify(spotRepository).existsAvailableSpotInOpenSector(timeCaptor.capture());
+        org.junit.jupiter.api.Assertions.assertEquals(LocalTime.of(22, 30), timeCaptor.getValue());
     }
 }

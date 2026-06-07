@@ -57,6 +57,13 @@ class WebhookRestControllerTest {
     }
 
     @Test
+    void emptyBodyReturns400WithErrorCode() throws Exception {
+        mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("WEB-001"));
+    }
+
+    @Test
     void entryWhenGarageFullReturns409WithErrorCode() throws Exception {
         // arrange
         doThrow(new GarageFullException(LicensePlate.of("ZUL0001"))).when(webhookEventMediator).handle(any());

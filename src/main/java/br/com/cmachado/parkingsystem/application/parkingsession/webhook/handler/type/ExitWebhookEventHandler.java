@@ -15,13 +15,10 @@ import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.Webho
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Component
 public class ExitWebhookEventHandler extends BaseWebhookEventHandler {
-
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
 
     private final ParkingSessionRepository sessionRepository;
     private final ParkingSpotRepository parkingSpotRepository;
@@ -50,7 +47,7 @@ public class ExitWebhookEventHandler extends BaseWebhookEventHandler {
     @Override
     protected void doHandle(WebhookEventRequest request) {
         var licensePlate = LicensePlate.of(request.getLicensePlate());
-        var exitTime = LocalDateTime.parse(request.getExitTime(), FORMATTER);
+        var exitTime = parseTimestamp("exit_time", request.getExitTime());
 
         ParkingSession session = sessionRepository.findByLicensePlateAndStatusIn(
                         licensePlate, List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED))

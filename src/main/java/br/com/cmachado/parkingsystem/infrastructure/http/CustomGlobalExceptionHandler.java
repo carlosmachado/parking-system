@@ -34,28 +34,28 @@ public class CustomGlobalExceptionHandler {
 
     @ExceptionHandler(CantParkSessionException.class)
     public ResponseEntity<ApiError> handleCantParkSessionException(CantParkSessionException ex, HttpServletRequest request) {
-        return buildErrorResponse(HttpStatus.CONFLICT, ex.getCode(), ex.getMessage(), request.getRequestURI());
+        return buildCodedErrorResponse(HttpStatus.CONFLICT, ex, request);
     }
 
     @ExceptionHandler(ParkingSpotOccupiedException.class)
     public ResponseEntity<ApiError> handleParkingSpotOccupiedException(ParkingSpotOccupiedException ex, HttpServletRequest request) {
-        return buildErrorResponse(HttpStatus.CONFLICT, ex.getCode(), ex.getMessage(), request.getRequestURI());
+        return buildCodedErrorResponse(HttpStatus.CONFLICT, ex, request);
     }
 
     @ExceptionHandler(ParkingSessionAlreadyExitedException.class)
     public ResponseEntity<ApiError> handleParkingSessionAlreadyExitedException(ParkingSessionAlreadyExitedException ex,
                                                                               HttpServletRequest request) {
-        return buildErrorResponse(HttpStatus.CONFLICT, ex.getCode(), ex.getMessage(), request.getRequestURI());
+        return buildCodedErrorResponse(HttpStatus.CONFLICT, ex, request);
     }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiError> handleNotFoundException(NotFoundException ex, HttpServletRequest request) {
-        return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getCode(), ex.getMessage(), request.getRequestURI());
+        return buildCodedErrorResponse(HttpStatus.NOT_FOUND, ex, request);
     }
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiError> handleBadRequestException(BadRequestException ex, HttpServletRequest request) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getCode(), ex.getMessage(), request.getRequestURI());
+        return buildCodedErrorResponse(HttpStatus.BAD_REQUEST, ex, request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -95,7 +95,7 @@ public class CustomGlobalExceptionHandler {
 
     @ExceptionHandler(GarageFullException.class)
     public ResponseEntity<ApiError> handleGarageFullException(GarageFullException ex, HttpServletRequest request) {
-        return buildErrorResponse(HttpStatus.CONFLICT, ex.getCode(), ex.getMessage(), request.getRequestURI());
+        return buildCodedErrorResponse(HttpStatus.CONFLICT, ex, request);
     }
 
     @ExceptionHandler(Exception.class)
@@ -105,6 +105,10 @@ public class CustomGlobalExceptionHandler {
 
     private String formatFieldError(FieldError fieldError) {
         return "%s: %s".formatted(fieldError.getField(), fieldError.getDefaultMessage());
+    }
+
+    private ResponseEntity<ApiError> buildCodedErrorResponse(HttpStatus status, CodedException ex, HttpServletRequest request) {
+        return buildErrorResponse(status, ex.getCode(), ex.getMessage(), request.getRequestURI());
     }
 
     private ResponseEntity<ApiError> buildErrorResponse(HttpStatus status, String code, String message, String path) {

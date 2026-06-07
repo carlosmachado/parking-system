@@ -34,10 +34,9 @@ public class RevenueServiceImpl implements RevenueService {
         var dailyRevenue = dailyRevenueRepository
                 .findBySectorCodeAndDate(sector, date);
 
-        if (dailyRevenue.isEmpty())
-            return amountOfZero();
-
-        return amountOf(dailyRevenue.get().getTotalAmount().getAmount());
+        return dailyRevenue
+                .map(revenue -> amountOf(revenue.getTotalAmount().getAmount()))
+                .orElseGet(this::amountOfZero);
     }
 
     @Override

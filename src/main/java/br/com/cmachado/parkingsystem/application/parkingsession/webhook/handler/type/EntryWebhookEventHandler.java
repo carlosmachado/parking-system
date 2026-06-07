@@ -15,14 +15,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 
 @Component
 public class EntryWebhookEventHandler extends BaseWebhookEventHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(EntryWebhookEventHandler.class);
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_DATE_TIME;
 
     private final ParkingSessionRepository sessionRepository;
     private final ParkingSpotRepository parkingSpotRepository;
@@ -56,9 +53,9 @@ public class EntryWebhookEventHandler extends BaseWebhookEventHandler {
     @Override
     protected void doHandle(WebhookEventRequest request) {
         var licensePlate = LicensePlate.of(request.getLicensePlate());
-        var entryTime = LocalDateTime.parse(request.getEntryTime(), FORMATTER);
+        var entryTime = parseTimestamp("entry_time", request.getEntryTime());
 
-        if (!hasAvailableSpotInOpenSector()) {
+        if (!hasAvailableSpotInOpenSector(entryTime)) {
             garageFullCounter.increment();
             logger.warn("Entry rejected — garage at capacity or all sectors closed: plate={}", licensePlate);
             throw new GarageFullException(licensePlate);
@@ -72,7 +69,7 @@ public class EntryWebhookEventHandler extends BaseWebhookEventHandler {
         sessionRepository.save(session);
     }
 
-    private boolean hasAvailableSpotInOpenSector() {
-        return parkingSpotRepository.existsAvailableSpotInOpenSector(LocalTime.now());
+    private boolean hasAvailableSpotInOpenSector(LocalDateTime entryTime) {
+        return parkingSpotRepository.existsAvailableSpotInOpenSector(entryTime.toLocalTime());
     }
 }
