@@ -4,8 +4,11 @@ import br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.CantParkSessionException;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.ParkingSessionNotFoundException;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.GeoLocation;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
+import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotId;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.ParkingSpotNotFoundException;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
@@ -40,17 +43,29 @@ public class ParkedWebhookEventHandler extends BaseWebhookEventHandler {
     @Override
     protected void doHandle(WebhookEventRequest request) {
         var licensePlate = LicensePlate.of(request.getLicensePlate());
-
-        var session = sessionRepository.findByLicensePlateAndStatusIn(licensePlate, List.of(ParkingSessionStatus.ENTERED))
-                .orElseThrow(() -> new ParkingSessionNotFoundException("No ENTERED parking session found for plate %s".formatted(licensePlate)));
-
         var location = GeoLocation.of(request.getLat(), request.getLng());
+
+        var session = sessionRepository.findByLicensePlateAndStatusIn(
+                        licensePlate, List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED))
+                .orElseThrow(() -> new ParkingSessionNotFoundException("No active parking session found for plate %s".formatted(licensePlate)));
 
         var parkingSpot = parkingSpotRepository.findByLocation(location)
                 .orElseThrow(() -> new ParkingSpotNotFoundException("No parking spot found at location %s".formatted(location)));
 
+        if (session.getStatus() == ParkingSessionStatus.PARKED) {
+            ignoreSameSpotReplayOrReject(session.getSpotId(), parkingSpot);
+            return;
+        }
+
         parkingSpot.park(session);
         parkingSpotRepository.save(parkingSpot);
         sessionRepository.save(session);
+    }
+
+    private void ignoreSameSpotReplayOrReject(ParkingSpotId currentSpotId, ParkingSpot requestedSpot) {
+        if (requestedSpot.getId().equals(currentSpotId)) {
+            return;
+        }
+        throw new CantParkSessionException("Parking session is already parked on a different spot");
     }
 }

@@ -8,6 +8,7 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleParked;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.CantParkSessionException;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.ParkingSessionNotFoundException;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -76,7 +78,8 @@ class ParkedWebhookEventHandlerTest {
     @Test
     void spotNotFoundThrows() {
         ParkingSession session = enteredSession("CAR0002");
-        when(sessionRepository.findByLicensePlateAndStatusIn(LicensePlate.of("CAR0002"), List.of(ParkingSessionStatus.ENTERED)))
+        when(sessionRepository.findByLicensePlateAndStatusIn(
+                LicensePlate.of("CAR0002"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
         when(spotRepository.findByLocation(any())).thenReturn(Optional.empty());
 
@@ -89,7 +92,8 @@ class ParkedWebhookEventHandlerTest {
     void occupiesSpotParksSessionAndSavesBoth() {
         ParkingSession session = enteredSession("CAR0001");
         ParkingSpot parkSpot = ParkingSpotFixture.aSpot().withExternalId(1L).withSector("A").withLocation(10.0, 10.0).build();
-        when(sessionRepository.findByLicensePlateAndStatusIn(LicensePlate.of("CAR0001"), List.of(ParkingSessionStatus.ENTERED)))
+        when(sessionRepository.findByLicensePlateAndStatusIn(
+                LicensePlate.of("CAR0001"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
                 .thenReturn(Optional.of(session));
         when(spotRepository.findByLocation(GeoLocation.of(10.0, 10.0))).thenReturn(Optional.of(parkSpot));
 
@@ -101,6 +105,38 @@ class ParkedWebhookEventHandlerTest {
         assertHasEvent(parkSpot, ParkingSpotOccupied.class);
         verify(spotRepository).save(parkSpot);
         verify(sessionRepository).save(session);
+    }
+
+    @Test
+    void duplicateParkedAtSameSpotIsIgnored() {
+        ParkingSpot parkSpot = ParkingSpotFixture.aSpot().withExternalId(1L).withSector("A").withLocation(10.0, 10.0).build();
+        ParkingSession session = ParkingSessionFixture.aSession().withPlate("CAR0003").enteredAt(ENTRY).parkedOn(parkSpot).build();
+        when(sessionRepository.findByLicensePlateAndStatusIn(
+                LicensePlate.of("CAR0003"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
+                .thenReturn(Optional.of(session));
+        when(spotRepository.findByLocation(GeoLocation.of(10.0, 10.0))).thenReturn(Optional.of(parkSpot));
+
+        handler.handle(WebhookEventFixture.aParked().withPlate("CAR0003").atLocation(10.0, 10.0).build());
+
+        verify(spotRepository, never()).save(any());
+        verify(sessionRepository, never()).save(any());
+    }
+
+    @Test
+    void duplicateParkedAtDifferentSpotStillRejects() {
+        ParkingSpot currentSpot = ParkingSpotFixture.aSpot().withExternalId(1L).withSector("A").withLocation(10.0, 10.0).build();
+        ParkingSpot requestedSpot = ParkingSpotFixture.aSpot().withExternalId(2L).withSector("A").withLocation(20.0, 20.0).build();
+        ParkingSession session = ParkingSessionFixture.aSession().withPlate("CAR0004").enteredAt(ENTRY).parkedOn(currentSpot).build();
+        when(sessionRepository.findByLicensePlateAndStatusIn(
+                LicensePlate.of("CAR0004"), List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
+                .thenReturn(Optional.of(session));
+        when(spotRepository.findByLocation(GeoLocation.of(20.0, 20.0))).thenReturn(Optional.of(requestedSpot));
+
+        assertThrows(CantParkSessionException.class,
+                () -> handler.handle(WebhookEventFixture.aParked().withPlate("CAR0004").atLocation(20.0, 20.0).build()),
+                "duplicate PARKED at another spot must not be accepted as idempotent");
+        verify(spotRepository, never()).save(any());
+        verify(sessionRepository, never()).save(any());
     }
 
     private ParkingSession enteredSession(String plate) {

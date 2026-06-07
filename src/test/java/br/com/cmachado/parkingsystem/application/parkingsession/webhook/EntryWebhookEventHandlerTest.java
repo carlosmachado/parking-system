@@ -3,12 +3,14 @@ package br.com.cmachado.parkingsystem.application.parkingsession.webhook;
 import br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.type.EntryWebhookEventHandler;
 import br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.WebhookEventType;
 import br.com.cmachado.parkingsystem.application.parkingsession.webhook.handler.type.WebhookEventValidationException;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.LicensePlate;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSession;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionRepository;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.ParkingSessionStatus;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.PricingElection;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.violations.GarageFullException;
 import br.com.cmachado.parkingsystem.domain.service.pricing.ChargeCalculator;
-import br.com.cmachado.parkingsystem.domain.model.parkingsession.PricingElection;
 import br.com.cmachado.parkingsystem.fixtures.WebhookEventFixture;
 import br.com.cmachado.parkingsystem.presentation.controllers.rest.webhook.WebhookEventRequest;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -21,6 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -87,6 +91,22 @@ class EntryWebhookEventHandlerTest {
         handler.handle(WebhookEventFixture.anEntry().withPlate("OPEN123").at(ENTRY).build());
 
         verify(sessionRepository).save(any(ParkingSession.class));
+    }
+
+    @Test
+    void duplicateEntryForActiveSessionIsIgnored() {
+        ParkingSession activeSession = ParkingSession.start(LicensePlate.of("OPEN123"), ENTRY)
+                .build();
+        when(sessionRepository.findByLicensePlateAndStatusIn(
+                LicensePlate.of("OPEN123"),
+                List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED)))
+                .thenReturn(Optional.of(activeSession));
+
+        handler.handle(WebhookEventFixture.anEntry().withPlate("OPEN123").at(ENTRY).build());
+
+        verify(spotRepository, never()).existsAvailableSpotInOpenSector(any());
+        verify(chargeCalculator, never()).electOnEntry();
+        verify(sessionRepository, never()).save(any());
     }
 
     @Test
