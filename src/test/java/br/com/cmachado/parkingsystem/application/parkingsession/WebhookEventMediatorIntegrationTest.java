@@ -20,7 +20,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,6 +36,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class WebhookEventMediatorIntegrationTest {
 
     private static final String SECTOR = "SEC-A";
+    private static final LocalDateTime ENTRY = LocalDateTime.parse("2025-01-01T10:00:00");
+    private static final LocalDateTime EXIT = LocalDateTime.parse("2025-01-01T12:00:00");
 
     @Autowired
     private WebhookEventMediator webhookEventMediator;
@@ -82,9 +83,9 @@ class WebhookEventMediatorIntegrationTest {
         String plate = "ABC1234";
 
         // act — full lifecycle through the webhook mediator
-        webhookEventMediator.handle(WebhookEventFixture.anEntry().withPlate(plate).at(LocalDateTime.now().minusHours(2)).build());
+        webhookEventMediator.handle(WebhookEventFixture.anEntry().withPlate(plate).at(ENTRY).build());
         webhookEventMediator.handle(WebhookEventFixture.aParked().withPlate(plate).atLocation(10.0, 10.0).build());
-        webhookEventMediator.handle(WebhookEventFixture.anExit().withPlate(plate).at(LocalDateTime.now()).build());
+        webhookEventMediator.handle(WebhookEventFixture.anExit().withPlate(plate).at(EXIT).build());
 
         // assert — revenue updates asynchronously after the exit commits.
         // Stayed 2h, base 10. Spot released before charge calc → occupancy 0/2 = 0% → 10% discount: 20 * 0.90
@@ -101,13 +102,13 @@ class WebhookEventMediatorIntegrationTest {
 
         // act / assert
         assertThrows(GarageFullException.class,
-                () -> webhookEventMediator.handle(WebhookEventFixture.anEntry().withPlate("CCC3333").at(LocalDateTime.now()).build()),
+                () -> webhookEventMediator.handle(WebhookEventFixture.anEntry().withPlate("CCC3333").at(ENTRY).build()),
                 "entry into a full garage must be rejected");
         assertEquals(countBefore, sessionRepository.count(), "rejected entry must not be stored");
     }
 
     private void parkVehicle(String plate, double lat, double lng) {
-        webhookEventMediator.handle(WebhookEventFixture.anEntry().withPlate(plate).at(LocalDateTime.now()).build());
+        webhookEventMediator.handle(WebhookEventFixture.anEntry().withPlate(plate).at(ENTRY).build());
         webhookEventMediator.handle(WebhookEventFixture.aParked().withPlate(plate).atLocation(lat, lng).build());
     }
 
@@ -116,7 +117,7 @@ class WebhookEventMediatorIntegrationTest {
         long deadline = System.nanoTime() + Duration.ofSeconds(5).toNanos();
         BigDecimal amount = BigDecimal.ZERO;
         while (System.nanoTime() < deadline) {
-            RevenueResponse response = revenueService.getRevenue(LocalDate.now(), sector);
+            RevenueResponse response = revenueService.getRevenue(EXIT.toLocalDate(), sector);
             assertNotNull(response, "revenue response must not be null");
             amount = response.getAmount();
             if (amount.signum() != 0) {

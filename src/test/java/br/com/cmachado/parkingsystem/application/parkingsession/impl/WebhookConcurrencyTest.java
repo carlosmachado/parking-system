@@ -22,7 +22,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +46,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class WebhookConcurrencyTest {
 
     private static final String SECTOR = "SEC-A";
+    private static final LocalDateTime ENTRY = LocalDateTime.parse("2025-01-01T10:00:00");
+    private static final LocalDateTime EXIT = LocalDateTime.parse("2025-01-01T12:00:00");
 
     @Autowired
     private WebhookRestController webhookController;
@@ -100,12 +101,12 @@ class WebhookConcurrencyTest {
         for (int i = 0; i < n; i++) {
             String plate = "REV" + String.format("%04d", i);
             plates.add(plate);
-            enter(plate, LocalDateTime.now().minusHours(2));
+            enter(plate, ENTRY);
             park(plate, (double) (i + 1), (double) (i + 1));
         }
 
         // act — fire all exits at once so the async revenue handlers race on the same row
-        runConcurrently(plates, plate -> exit(plate, LocalDateTime.now()));
+        runConcurrently(plates, plate -> exit(plate, EXIT));
 
         // assert
         BigDecimal expected = sumChargedAmounts();
@@ -128,17 +129,16 @@ class WebhookConcurrencyTest {
         for (int i = 1; i <= n; i++) {
             spotRepository.save(ParkingSpotFixture.aSpot().withExternalId(i).withSector(SECTOR).withLocation(i, i).build());
         }
-        LocalDateTime exitTime = LocalDateTime.now();
         List<String> plates = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             String plate = "HOT" + String.format("%04d", i);
             plates.add(plate);
-            enter(plate, exitTime.minusHours(2));
+            enter(plate, ENTRY);
             park(plate, (double) (i + 1), (double) (i + 1));
         }
 
         // act — all exits fire at once at the same instant, hammering one (sector, date) row
-        runConcurrently(plates, plate -> exit(plate, exitTime));
+        runConcurrently(plates, plate -> exit(plate, EXIT));
 
         // assert
         BigDecimal expected = sumChargedAmounts();
@@ -160,8 +160,8 @@ class WebhookConcurrencyTest {
         spotRepository.save(ParkingSpotFixture.aSpot().withExternalId(2L).withSector(SECTOR).withLocation(20.0, 20.0).build());
         String p1 = "PRK0001";
         String p2 = "PRK0002";
-        enter(p1, LocalDateTime.now());
-        enter(p2, LocalDateTime.now());
+        enter(p1, ENTRY);
+        enter(p2, ENTRY);
 
         // act — each vehicle parks at its own spot location, concurrently
         runConcurrently(List.of(p1, p2), plate -> park(plate, plate.equals(p1) ? 10.0 : 20.0, plate.equals(p1) ? 10.0 : 20.0));
@@ -238,7 +238,7 @@ class WebhookConcurrencyTest {
         long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
         BigDecimal amount = BigDecimal.ZERO;
         while (System.nanoTime() < deadline) {
-            RevenueResponse response = revenueService.getRevenue(LocalDate.now(), sector);
+            RevenueResponse response = revenueService.getRevenue(EXIT.toLocalDate(), sector);
             amount = response.getAmount();
             if (amount.compareTo(expected) == 0) {
                 return amount;

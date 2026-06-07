@@ -24,7 +24,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,6 +53,8 @@ class WebhookPerformanceTest {
     private static final Logger logger = LoggerFactory.getLogger(WebhookPerformanceTest.class);
 
     private static final String SECTOR = "SEC-PERF";
+    private static final LocalDateTime ENTRY = LocalDateTime.parse("2025-01-01T10:00:00");
+    private static final LocalDateTime EXIT = LocalDateTime.parse("2025-01-01T12:00:00");
     private static final int VEHICLES = 50;
     /** Lower bound on sustained lifecycle throughput. Conservative to stay stable on CI. */
     private static final double MIN_LIFECYCLES_PER_SECOND = 5.0;
@@ -98,9 +99,9 @@ class WebhookPerformanceTest {
         runConcurrently(indices, i -> {
             String plate = "PERF" + String.format("%04d", i);
             double coord = i + 1;
-            enter(plate, LocalDateTime.now().minusHours(2));
+            enter(plate, ENTRY);
             park(plate, coord, coord);
-            exit(plate, LocalDateTime.now());
+            exit(plate, EXIT);
         });
         elapsedNanos.set(System.nanoTime() - start);
 
@@ -186,7 +187,7 @@ class WebhookPerformanceTest {
         long deadline = System.nanoTime() + Duration.ofSeconds(15).toNanos();
         BigDecimal amount = BigDecimal.ZERO;
         while (System.nanoTime() < deadline) {
-            RevenueResponse response = revenueService.getRevenue(LocalDate.now(), sector);
+            RevenueResponse response = revenueService.getRevenue(EXIT.toLocalDate(), sector);
             amount = response.getAmount();
             if (amount.compareTo(expected) == 0) {
                 return amount;
