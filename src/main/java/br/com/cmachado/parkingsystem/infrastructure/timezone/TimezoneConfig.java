@@ -9,7 +9,7 @@ import java.util.TimeZone;
 @Configuration
 public class TimezoneConfig {
 
-    @Value("${timezone:America/Sao_Paulo}")
+    @Value("${app.timezone:America/Sao_Paulo}")
     private String timezone;
 
     @PostConstruct

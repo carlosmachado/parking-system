@@ -28,13 +28,13 @@ public class GarageInitializerRunner implements ApplicationRunner {
     @Value("${server.port:3003}")
     private int serverPort;
 
-    @Value("${webhook.host:localhost}")
+    @Value("${app.webhook.host:localhost}")
     private String webhookHost;
 
-    @Value("${garage.init.max-attempts:10}")
+    @Value("${app.garage.init.max-attempts:10}")
     private int maxAttempts;
 
-    @Value("${garage.init.retry-delay-ms:3000}")
+    @Value("${app.garage.init.retry-delay-ms:3000}")
     private long retryDelayMs;
 
     public GarageInitializerRunner(SimulatorClient simulatorClient,

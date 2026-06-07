@@ -31,7 +31,7 @@ public class ChargeCalculator {
     public ChargeCalculator(SectorRepository sectorRepository,
                             ParkingSpotRepository parkingSpotRepository,
                             PricingStrategyFactory pricingStrategyFactory,
-                            @Value("${pricing.election:AT_EXIT}") PricingElection election) {
+                            @Value("${app.pricing.election:AT_EXIT}") PricingElection election) {
         this.sectorRepository = sectorRepository;
         this.parkingSpotRepository = parkingSpotRepository;
         this.pricingStrategyFactory = pricingStrategyFactory;

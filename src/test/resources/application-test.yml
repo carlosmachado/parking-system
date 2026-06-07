@@ -14,19 +14,20 @@ spring:
   flyway:
     enabled: false
 
-# Disable simulator call on startup for tests
-simulator:
-  url: http://localhost:9999
+app:
+  timezone: America/Sao_Paulo
 
-# Fail fast on startup garage init during tests (the simulator is not running)
-garage:
-  init:
-    max-attempts: 1
-    retry-delay-ms: 0
+  # Disable simulator call on startup for tests
+  simulator:
+    url: http://localhost:9999
 
-revenue:
-  update:
-    max-attempts: 3
-    retry-delay-ms: 0
+  # Fail fast on startup garage init during tests (the simulator is not running)
+  garage:
+    init:
+      max-attempts: 1
+      retry-delay-ms: 0
 
-timezone: America/Sao_Paulo
+  revenue:
+    update:
+      max-attempts: 3
+      retry-delay-ms: 0

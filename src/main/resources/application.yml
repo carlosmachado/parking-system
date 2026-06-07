@@ -24,28 +24,37 @@ spring:
     user: root
     password: root
 
-simulator:
-  url: http://localhost:3000
-  connect-timeout-ms: 2000
-  read-timeout-ms: 5000
+# Application configuration (all custom knobs namespaced under app.*)
+app:
+  timezone: America/Sao_Paulo
 
-# Garage initialization retry (simulator may not be ready when the app boots)
-garage:
-  init:
-    max-attempts: 10
-    retry-delay-ms: 3000
+  simulator:
+    url: http://localhost:3000
+    connect-timeout-ms: 2000
+    read-timeout-ms: 5000
 
-webhook:
-  host: localhost
+  # Garage initialization retry (simulator may not be ready when the app boots)
+  garage:
+    init:
+      max-attempts: 10
+      retry-delay-ms: 3000
 
-# Pricing strategy election: AT_EXIT (choose from occupancy at exit) or AT_ENTRY (lock in at entry)
-pricing:
-  election: AT_EXIT
+  webhook:
+    host: localhost
 
-# Revenue async update retry
-revenue:
-  update:
-    max-attempts: 3
-    retry-delay-ms: 100
+  # Pricing strategy election: AT_EXIT (choose from occupancy at exit) or AT_ENTRY (lock in at entry)
+  pricing:
+    election: AT_EXIT
 
-timezone: America/Sao_Paulo
+  # Revenue async update retry
+  revenue:
+    update:
+      max-attempts: 3
+      retry-delay-ms: 100
+
+  # Sector reference-data cache (static after startup; evicted on garage init)
+  cache:
+    enabled: true
+    sector:
+      ttl: 12h
+      max-size: 64

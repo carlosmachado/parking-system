@@ -40,8 +40,8 @@ public class DailyRevenueAsyncListener {
 
     public DailyRevenueAsyncListener(DailyRevenueUpdater revenueUpdater,
                                      MeterRegistry meterRegistry,
-                                     @Value("${revenue.update.max-attempts:3}") int maxAttempts,
-                                     @Value("${revenue.update.retry-delay-ms:100}") long retryDelayMs) {
+                                     @Value("${app.revenue.update.max-attempts:3}") int maxAttempts,
+                                     @Value("${app.revenue.update.retry-delay-ms:100}") long retryDelayMs) {
         this.revenueUpdater = revenueUpdater;
         this.maxAttempts = Math.max(1, maxAttempts);
         this.retryDelayMs = Math.max(0, retryDelayMs);

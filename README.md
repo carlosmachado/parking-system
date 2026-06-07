@@ -59,15 +59,19 @@ docker compose logs -f garage-sim
 
 ## Configuração
 
-Definida em `application.yml` (sobrescrevível por variável de ambiente):
+Todos os parâmetros próprios da aplicação ficam sob o namespace `app.*` em `application.yml`
+(sobrescrevíveis por variável de ambiente):
 
 | Propriedade | Padrão | Descrição |
 |-------------|--------|-----------|
-| `pricing.election` | `AT_EXIT` | Quando eleger a estratégia de preço: `AT_EXIT` ou `AT_ENTRY`. |
-| `simulator.connect-timeout-ms` | `2000` | Timeout de conexão com o simulador. |
-| `simulator.read-timeout-ms` | `5000` | Timeout de leitura das respostas do simulador. |
-| `revenue.update.max-attempts` | `3` | Tentativas de gravação da receita antes de descartar o incremento. |
-| `revenue.update.retry-delay-ms` | `100` | Espera entre tentativas de gravação da receita. |
+| `app.pricing.election` | `AT_EXIT` | Quando eleger a estratégia de preço: `AT_EXIT` ou `AT_ENTRY`. |
+| `app.simulator.connect-timeout-ms` | `2000` | Timeout de conexão com o simulador. |
+| `app.simulator.read-timeout-ms` | `5000` | Timeout de leitura das respostas do simulador. |
+| `app.revenue.update.max-attempts` | `3` | Tentativas de gravação da receita antes de descartar o incremento. |
+| `app.revenue.update.retry-delay-ms` | `100` | Espera entre tentativas de gravação da receita. |
+| `app.cache.enabled` | `true` | Liga/desliga o cache de setores (`false` usa cache no-op). |
+| `app.cache.sector.ttl` | `12h` | TTL do cache de dados de setor. |
+| `app.cache.sector.max-size` | `64` | Tamanho máximo do cache de setores. |
 
 No `docker compose`, alterne o modo de eleição via variável de ambiente:
 
@@ -134,7 +138,7 @@ curl "http://localhost:3003/revenue?date=2025-01-01&sector=A"
   | < 50%   | base   |
   | < 75%   | +10%   |
   | ≤ 100%  | +25%   |
-- **Momento da eleição** controlado por `pricing.election` (ver Configuração):
+- **Momento da eleição** controlado por `app.pricing.election` (ver Configuração):
   - `AT_EXIT` (padrão): a lotação é lida na saída e a estratégia escolhida nesse instante.
   - `AT_ENTRY`: a estratégia é eleita na entrada e gravada na sessão; a saída apenas a aplica,
     sem consultar a lotação. O modo escolhido fica registrado em cada sessão, então alternar a

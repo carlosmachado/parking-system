@@ -8,11 +8,14 @@ import br.com.cmachado.parkingsystem.domain.model.sector.SectorRepository;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.GeoLocation;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpotRepository;
+import br.com.cmachado.parkingsystem.infrastructure.cache.CacheConfig;
 import br.com.cmachado.parkingsystem.infrastructure.client.GarageResponse;
 import br.com.cmachado.parkingsystem.infrastructure.client.GarageResponse.SectorData;
 import br.com.cmachado.parkingsystem.infrastructure.client.GarageResponse.SpotData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +42,10 @@ public class GarageInitializerServiceImpl implements GarageInitializerService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheConfig.SECTORS, allEntries = true),
+            @CacheEvict(cacheNames = CacheConfig.SECTOR_MIN_BASE_PRICE, allEntries = true)
+    })
     public void initializeGarage(GarageResponse config) {
         if (config == null) {
             logger.warn("Received null garage config from simulator.");

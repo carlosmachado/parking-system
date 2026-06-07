@@ -11,13 +11,13 @@ import java.time.Duration;
 @Configuration
 public class SimulatorClientConfig {
 
-    @Value("${simulator.url}")
+    @Value("${app.simulator.url}")
     private String simulatorUrl;
 
-    @Value("${simulator.connect-timeout-ms:2000}")
+    @Value("${app.simulator.connect-timeout-ms:2000}")
     private long connectTimeoutMs;
 
-    @Value("${simulator.read-timeout-ms:5000}")
+    @Value("${app.simulator.read-timeout-ms:5000}")
     private long readTimeoutMs;
 
     @Bean
