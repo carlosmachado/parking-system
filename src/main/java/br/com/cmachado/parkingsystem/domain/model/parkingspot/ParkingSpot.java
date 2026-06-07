@@ -110,6 +110,6 @@ public class ParkingSpot extends AggregateRootBase<ParkingSpot> {
 
     private void throwIfNotEnteredStatus(ParkingSession session) {
         if (session.getStatus() != ParkingSessionStatus.ENTERED)
-            throw new CantParkSessionException("ParkingSession must be in ENTERED status to park");
+            throw new CantParkSessionException("Parking session must be ENTERED before it can occupy a spot");
     }
 }

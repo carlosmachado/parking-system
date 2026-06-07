@@ -5,6 +5,7 @@ import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleE
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleExited;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.events.VehicleParked;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.CantParkSessionException;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.ParkingSessionAlreadyExitedException;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.service.pricing.strategy.PricingStrategyType;
@@ -103,7 +104,7 @@ class ParkingSessionTest {
         session.exit(EXIT, Money.ZERO, PricingStrategyType.STANDARD);
 
         // act / assert
-        assertThrows(IllegalStateException.class, () -> session.exit(EXIT, Money.ZERO, PricingStrategyType.STANDARD),
+        assertThrows(ParkingSessionAlreadyExitedException.class, () -> session.exit(EXIT, Money.ZERO, PricingStrategyType.STANDARD),
                 "must not exit a session twice");
     }
 }

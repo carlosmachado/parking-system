@@ -52,7 +52,8 @@ class WebhookRestControllerTest {
 
         // act / assert
         mockMvc.perform(post("/webhook").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("WEB-001"));
     }
 
     @Test

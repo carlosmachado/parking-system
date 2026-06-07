@@ -67,6 +67,13 @@ class RevenueRestControllerTest {
         verify(revenueService).getRevenueAllSectors(eq(LocalDate.now()));
     }
 
+    @Test
+    void invalidDateReturns400WithErrorCode() throws Exception {
+        mockMvc.perform(get("/revenue").param("date", "not-a-date"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("WEB-001"));
+    }
+
     private RevenueResponse revenueResponse(String amount) {
         return RevenueResponse.builder()
                 .amount(new BigDecimal(amount))

@@ -54,7 +54,7 @@ public class ExitWebhookEventHandler extends BaseWebhookEventHandler {
 
         ParkingSession session = sessionRepository.findByLicensePlateAndStatusIn(
                         licensePlate, List.of(ParkingSessionStatus.ENTERED, ParkingSessionStatus.PARKED))
-                .orElseThrow(() -> new ParkingSessionNotFoundException("No active session found for plate " + licensePlate));
+                .orElseThrow(() -> new ParkingSessionNotFoundException("No active parking session found for plate %s".formatted(licensePlate)));
 
         if (session.isParked())
             tryToReleaseSpot(session);
@@ -66,7 +66,7 @@ public class ExitWebhookEventHandler extends BaseWebhookEventHandler {
     private void tryToReleaseSpot(ParkingSession session) {
         ParkingSpotId spotId = session.getSpotId();
         ParkingSpot spot = parkingSpotRepository.findById(spotId)
-                .orElseThrow(() -> new ParkingSpotNotFoundException("No spot found for id " + spotId));
+                .orElseThrow(() -> new ParkingSpotNotFoundException("No parking spot found for id %s".formatted(spotId)));
         spot.release();
         parkingSpotRepository.save(spot);
     }

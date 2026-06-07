@@ -42,12 +42,12 @@ public class ParkedWebhookEventHandler extends BaseWebhookEventHandler {
         var licensePlate = LicensePlate.of(request.getLicensePlate());
 
         var session = sessionRepository.findByLicensePlateAndStatusIn(licensePlate, List.of(ParkingSessionStatus.ENTERED))
-                .orElseThrow(() -> new ParkingSessionNotFoundException("No ENTERED session found for plate " + licensePlate));
+                .orElseThrow(() -> new ParkingSessionNotFoundException("No ENTERED parking session found for plate %s".formatted(licensePlate)));
 
         var location = GeoLocation.of(request.getLat(), request.getLng());
 
         var parkingSpot = parkingSpotRepository.findByLocation(location)
-                .orElseThrow(() -> new ParkingSpotNotFoundException("No spot found at location " + location));
+                .orElseThrow(() -> new ParkingSpotNotFoundException("No parking spot found at location %s".formatted(location)));
 
         parkingSpot.park(session);
         parkingSpotRepository.save(parkingSpot);

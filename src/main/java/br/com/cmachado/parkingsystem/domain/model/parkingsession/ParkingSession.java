@@ -2,6 +2,7 @@ package br.com.cmachado.parkingsystem.domain.model.parkingsession;
 
 import br.com.cmachado.parkingsystem.domain.model.common.money.Money;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.CantParkSessionException;
+import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.ParkingSessionAlreadyExitedException;
 import br.com.cmachado.parkingsystem.domain.model.parkingsession.violations.ParkingSpotOccupiedException;
 import br.com.cmachado.parkingsystem.domain.model.sector.SectorCode;
 import br.com.cmachado.parkingsystem.domain.model.parkingspot.ParkingSpot;
@@ -143,7 +144,7 @@ public class ParkingSession extends AggregateRootBase<ParkingSession> {
 
     public void parkOn(ParkingSpot parkingSpot) {
         if (this.status != ParkingSessionStatus.ENTERED)
-            throw new CantParkSessionException("Session must be in ENTERED status to park");
+            throw new CantParkSessionException("Parking session must be ENTERED before it can be parked");
 
         validateOccupied(parkingSpot);
         this.spotId = parkingSpot.getId();
@@ -162,11 +163,11 @@ public class ParkingSession extends AggregateRootBase<ParkingSession> {
      * Records the exit time, the pricing strategy that was applied and the final charge, moves
      * the session to {@code EXITED} and registers a {@link VehicleExited} domain event.
      *
-     * @throws IllegalStateException if the session has already exited
+     * @throws ParkingSessionAlreadyExitedException if the session has already exited
      */
     public void exit(LocalDateTime exitTime, Money amount, PricingStrategyType strategy) {
         if (this.status == ParkingSessionStatus.EXITED) {
-            throw new IllegalStateException("Session has already exited");
+            throw new ParkingSessionAlreadyExitedException();
         }
         this.period = this.period.end(exitTime);
         this.amountCharged = amount;
